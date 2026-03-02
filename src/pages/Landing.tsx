@@ -131,9 +131,9 @@ export default function Landing() {
           </div>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-5 sm:mb-6">
-            Hecha para{' '}
+            Administrá tus alquileres{' '}
             <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
-              inmobiliarias argentinas
+              sin complicaciones
             </span>
           </h1>
 
