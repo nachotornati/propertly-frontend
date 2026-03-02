@@ -14,8 +14,9 @@ interface Props {
   onClose: () => void
 }
 
-/** Builds a month-by-month list of what the rent should have been from contract start to today. */
-function buildMonthlyHistory(property: Property): { date: Date; precio: number; isAdjustment: boolean }[] {
+/** Builds a month-by-month list of rent prices from contract start to today, plus
+ *  future months where the price is already known (before the next adjustment date). */
+function buildMonthlyHistory(property: Property): { date: Date; precio: number; isAdjustment: boolean; isFuture: boolean }[] {
   const start = startOfMonth(parseISO(property.mesInicio))
   const today = startOfMonth(new Date())
 
@@ -25,15 +26,27 @@ function buildMonthlyHistory(property: Property): { date: Date; precio: number; 
     adjByMonth.set(rec.fecha.substring(0, 7), rec.precioAhora)
   }
 
-  const rows: { date: Date; precio: number; isAdjustment: boolean }[] = []
+  // Months at/after nextAdjustmentDate have an unknown price (index not published yet)
+  const cutoffDate = property.nextAdjustmentDate
+    ? startOfMonth(parseISO(property.nextAdjustmentDate))
+    : null
+
+  // Don't exceed end of contract
+  const contractEnd = property.duracionMeses
+    ? addMonths(start, property.duracionMeses - 1)
+    : null
+
+  const rows: { date: Date; precio: number; isAdjustment: boolean; isFuture: boolean }[] = []
   let currentPrice = property.precio
   let cursor = start
 
-  while (cursor <= today) {
+  while (cursor <= today || (cutoffDate && cursor < cutoffDate)) {
+    if (contractEnd && cursor > contractEnd) break
     const ym = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
     const isAdjustment = adjByMonth.has(ym)
     if (isAdjustment) currentPrice = adjByMonth.get(ym)!
-    rows.push({ date: new Date(cursor), precio: currentPrice, isAdjustment })
+    const isFuture = cursor > today
+    rows.push({ date: new Date(cursor), precio: currentPrice, isAdjustment, isFuture })
     cursor = addMonths(cursor, 1)
   }
 
@@ -146,7 +159,8 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
                       key={i}
                       className={clsx(
                         isCurrentMonth(row.date) && 'bg-brand-50',
-                        row.isAdjustment && !isCurrentMonth(row.date) && 'bg-emerald-50/40',
+                        row.isAdjustment && !isCurrentMonth(row.date) && !row.isFuture && 'bg-emerald-50/40',
+                        row.isFuture && !isCurrentMonth(row.date) && 'opacity-50',
                       )}
                     >
                       <td className="px-4 py-2.5 font-medium text-slate-700 flex items-center gap-2">
@@ -159,6 +173,11 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
                         {isCurrentMonth(row.date) && (
                           <span className="text-[10px] font-semibold text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded-full">
                             hoy
+                          </span>
+                        )}
+                        {row.isFuture && !isCurrentMonth(row.date) && (
+                          <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                            próximo
                           </span>
                         )}
                       </td>

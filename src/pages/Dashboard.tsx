@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { getProperties, getCobrosMesActual, getVencidosAnteriores, bulkCreateCobros, bulkNotificarCobros } from '../services/api'
-import { Building2, CheckCircle, Clock, AlertTriangle, TrendingUp, Plus, MessageCircle } from 'lucide-react'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { getProperties, getCobrosMesActual, getVencidosAnteriores, bulkCreateCobros, bulkNotificarCobros, updateCobro, deleteCobro, notificarCobro } from '../services/api'
+import { Building2, CheckCircle, Clock, AlertTriangle, TrendingUp, Plus, MessageCircle, Trash2 } from 'lucide-react'
 import type { AjusteRecord, Cobro, CobroVencidoAnterior, Property } from '../types'
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -39,6 +39,40 @@ export default function Dashboard({ agencyId }: DashboardProps) {
   const queryClient = useQueryClient()
   const [bulkCreating, setBulkCreating] = useState(false)
   const [bulkNotifying, setBulkNotifying] = useState(false)
+  const [notifyingId, setNotifyingId] = useState<string | null>(null)
+
+  const invalidateCobros = () => {
+    queryClient.invalidateQueries({ queryKey: ['cobros-mes-actual'] })
+    queryClient.invalidateQueries({ queryKey: ['cobros-vencidos-anteriores', agencyId] })
+  }
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Cobro> }) => updateCobro(id, data),
+    onSuccess: invalidateCobros,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCobro,
+    onSuccess: invalidateCobros,
+  })
+
+  const markPagado = (cobro: Cobro) =>
+    updateMutation.mutate({ id: cobro.id, data: { ...cobro, pagado: true, fechaPago: new Date().toISOString().split('T')[0] } })
+
+  const markVencido = (cobro: Cobro) =>
+    updateMutation.mutate({ id: cobro.id, data: { ...cobro, vencido: true } })
+
+  const sendWhatsApp = async (cobro: Cobro) => {
+    setNotifyingId(cobro.id)
+    try {
+      await notificarCobro(cobro.id)
+      alert('Mensaje enviado por WhatsApp ✓')
+    } catch (e: any) {
+      alert(e.response?.data?.error ?? 'Error al enviar WhatsApp')
+    } finally {
+      setNotifyingId(null)
+    }
+  }
 
   const handleBulkCreate = async () => {
     setBulkCreating(true)
@@ -178,8 +212,8 @@ export default function Dashboard({ agencyId }: DashboardProps) {
               const isVencido = status === 'vencido' || vencidosAnterioresIds.has(prop.id)
               const monto = cobro ? Number(cobro.montoTotal) : Number(prop.precioActual ?? prop.precio)
               return (
-                <div key={prop.id} className={`flex items-center justify-between px-6 py-4 ${isVencido ? 'bg-red-50/40' : ''}`}>
-                  <div>
+                <div key={prop.id} className={`flex items-center justify-between gap-3 px-6 py-4 ${isVencido ? 'bg-red-50/40' : ''}`}>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-slate-900">{prop.address || prop.barrio}</span>
                       {prop.address && <span className="text-slate-400 text-sm">· {prop.barrio}</span>}
@@ -210,6 +244,30 @@ export default function Dashboard({ agencyId }: DashboardProps) {
                         </span>
                       )}
                     </div>
+                    {cobro && (
+                      <div className="flex items-center gap-1 justify-end mt-1.5">
+                        {!cobro.pagado && (
+                          <>
+                            <button onClick={() => markPagado(cobro)} className="btn-secondary py-0.5 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" title="Marcar como pagado">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                            {!cobro.vencido && (
+                              <button onClick={() => markVencido(cobro)} className="btn-secondary py-0.5 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50" title="Marcar como vencido">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {prop.tenantPhone && (
+                              <button onClick={() => sendWhatsApp(cobro)} disabled={notifyingId === cobro.id} className="btn-secondary py-0.5 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50 disabled:opacity-50" title="Enviar WhatsApp">
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        <button onClick={() => confirm('¿Eliminar este cobro?') && deleteMutation.mutate(cobro.id)} className="btn py-0.5 px-2 text-xs text-red-500 hover:bg-red-50 border border-red-200" title="Eliminar cobro">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -236,8 +294,8 @@ export default function Dashboard({ agencyId }: DashboardProps) {
                 ? Number(item.cobro.montoTotal)
                 : priceForMonth(mesKeyStr, prop.historialAjustes ?? [], Number(prop.precioActual ?? prop.precio))
               return (
-                <div key={i} className="flex items-center justify-between px-6 py-4 bg-red-50/40">
-                  <div>
+                <div key={i} className="flex items-center justify-between gap-3 px-6 py-4 bg-red-50/40">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-slate-900">{prop.address || prop.barrio}</span>
                       {prop.address && <span className="text-slate-400 text-sm">· {prop.barrio}</span>}
@@ -253,6 +311,25 @@ export default function Dashboard({ agencyId }: DashboardProps) {
                       <AlertTriangle className="w-3 h-3" />
                       {item.cobro ? 'Sin pagar' : 'Sin registrar'}
                     </span>
+                    {item.cobro && (
+                      <div className="flex items-center gap-1 justify-end mt-1.5">
+                        {!item.cobro.pagado && (
+                          <>
+                            <button onClick={() => markPagado(item.cobro!)} className="btn-secondary py-0.5 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" title="Marcar como pagado">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                            {prop.tenantPhone && (
+                              <button onClick={() => sendWhatsApp(item.cobro!)} disabled={notifyingId === item.cobro.id} className="btn-secondary py-0.5 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50 disabled:opacity-50" title="Enviar WhatsApp">
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        <button onClick={() => confirm('¿Eliminar este cobro?') && deleteMutation.mutate(item.cobro!.id)} className="btn py-0.5 px-2 text-xs text-red-500 hover:bg-red-50 border border-red-200" title="Eliminar cobro">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
