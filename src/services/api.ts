@@ -32,6 +32,9 @@ export const login = (username: string, password: string) =>
 export const register = (username: string, password: string, agencyName: string) =>
   api.post<{ token: string; agencyId: string }>('/api/auth/register', { username, password, agencyName }).then(r => r.data)
 
+export const resetPassword = (username: string, newPassword: string) =>
+  api.post('/api/auth/reset-password', { username, newPassword }).then(r => r.data)
+
 export const logout = () =>
   api.post('/api/auth/logout').catch(() => {}).finally(() => {
     localStorage.removeItem('propertly_token')
