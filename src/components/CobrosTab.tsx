@@ -22,24 +22,39 @@ interface CobrosTabProps {
 
 const formatARS = (n: number) => `$ ${Math.round(n).toLocaleString('es-AR')}`
 
-/** Returns all months from mesInicio to mesInicio + duracionMeses - 1, in reverse order (newest first),
- *  with the computed rent price for each month based on historialAjustes. */
+/** Returns months from max(mesInicio, createdAt_month) to mesInicio + duracionMeses - 1,
+ *  in reverse order (newest first), with the computed rent price for each month. */
 function buildContractMonths(property: Property): { date: Date; precio: number }[] {
   if (!property.duracionMeses) return []
   const start = startOfMonth(parseISO(property.mesInicio))
 
-  // Build adjustment map: "YYYY-MM" → new price
+  // Never show months before the property was registered in the system
+  const registrationMonth = property.createdAt
+    ? startOfMonth(parseISO(property.createdAt))
+    : start
+
+  // Sort historial ascending by date
+  const historial = [...(property.historialAjustes ?? [])].sort((a, b) => a.fecha.localeCompare(b.fecha))
+
+  // Build adjustment map: "YYYY-MM" → price starting from that month
   const adjByMonth = new Map<string, number>()
-  for (const rec of property.historialAjustes ?? []) {
-    adjByMonth.set(rec.fecha.substring(0, 7), rec.precioAhora)
+  for (const rec of historial) {
+    adjByMonth.set(rec.fecha.substring(0, 7), Number(rec.precioAhora))
   }
 
+  // Starting price: price before first adjustment; fallback to precioActual if no historial
+  // (handles contracts added retroactively with precioBaseOverride)
+  let currentPrice = historial.length > 0
+    ? Number(historial[0].precioAntes)
+    : Number(property.precioActual ?? property.precio)
+
   const months: { date: Date; precio: number }[] = []
-  let currentPrice = property.precio
   for (let i = 0; i < property.duracionMeses; i++) {
     const date = addMonths(start, i)
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     if (adjByMonth.has(key)) currentPrice = adjByMonth.get(key)!
+    // Skip months before the property was registered (but still advance price through them)
+    if (date < registrationMonth) continue
     months.push({ date, precio: currentPrice })
   }
   return months.reverse()
