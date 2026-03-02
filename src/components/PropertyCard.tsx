@@ -36,13 +36,18 @@ export default function PropertyCard({ property, onEdit, onDelete, reminderDays 
     )}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
+          {/* Dirección como título principal */}
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="font-semibold text-slate-900 truncate">{property.barrio}</span>
+            <span className="font-semibold text-slate-900 truncate">
+              {property.address || `${property.barrio}${property.provincia ? `, ${property.provincia}` : ''}`}
+            </span>
           </div>
-          {property.address && (
-            <p className="text-sm text-slate-500 ml-6 truncate">{property.address}</p>
-          )}
+          {/* Barrio y provincia como subtítulo */}
+          <p className="text-sm text-slate-500 ml-6 truncate">
+            {property.barrio}
+            {property.provincia && property.provincia !== property.barrio && ` · ${property.provincia}`}
+          </p>
         </div>
         {statusBadge()}
       </div>
@@ -93,16 +98,10 @@ export default function PropertyCard({ property, onEdit, onDelete, reminderDays 
       )}
 
       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={onEdit}
-          className="btn-secondary py-1.5 px-3 text-xs"
-        >
+        <button onClick={onEdit} className="btn-secondary py-1.5 px-3 text-xs">
           <Pencil className="w-3.5 h-3.5" /> Editar
         </button>
-        <button
-          onClick={onDelete}
-          className="btn text-xs py-1.5 px-3 text-red-600 hover:bg-red-50 border border-red-200"
-        >
+        <button onClick={onDelete} className="btn text-xs py-1.5 px-3 text-red-600 hover:bg-red-50 border border-red-200">
           <Trash2 className="w-3.5 h-3.5" /> Eliminar
         </button>
       </div>

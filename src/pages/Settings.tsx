@@ -18,6 +18,49 @@ interface AgencyFormData {
   diasAntesRecordatorio: number
 }
 
+interface AgencyFormProps {
+  agency?: Agency
+  onClose: () => void
+  onSubmit: (data: AgencyFormData) => Promise<void>
+}
+
+function AgencyForm({ agency, onClose, onSubmit }: AgencyFormProps) {
+  const { register, handleSubmit, formState: { isSubmitting } } = useForm<AgencyFormData>({
+    defaultValues: agency
+      ? { name: agency.name, email: agency.email, diasAntesRecordatorio: agency.diasAntesRecordatorio }
+      : { diasAntesRecordatorio: 30 },
+  })
+
+  return (
+    <div className="card p-5 border-brand-200 bg-brand-50/30">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">Nombre *</label>
+            <input className="input" placeholder="Inmobiliaria XYZ" {...register('name', { required: true })} />
+          </div>
+          <div>
+            <label className="label">Email de contacto</label>
+            <input className="input" type="email" placeholder="info@inmobiliaria.com" {...register('email')} />
+          </div>
+          <div>
+            <label className="label">Avisar con X días de anticipación</label>
+            <input className="input" type="number" min={1} max={90} {...register('diasAntesRecordatorio')} />
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button type="button" className="btn-secondary" onClick={onClose}>
+            <X className="w-4 h-4" /> Cancelar
+          </button>
+          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            <Check className="w-4 h-4" /> {agency ? 'Guardar' : 'Crear inmobiliaria'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 export default function Settings({ agencyId, setAgencyId, reminderDays, setReminderDays }: SettingsProps) {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
@@ -50,46 +93,6 @@ export default function Settings({ agencyId, setAgencyId, reminderDays, setRemin
     },
   })
 
-  const AgencyForm = ({ agency, onClose }: { agency?: Agency; onClose: () => void }) => {
-    const { register, handleSubmit, formState: { isSubmitting } } = useForm<AgencyFormData>({
-      defaultValues: agency
-        ? { name: agency.name, email: agency.email, diasAntesRecordatorio: agency.diasAntesRecordatorio }
-        : { diasAntesRecordatorio: 30 },
-    })
-
-    const onSubmit = async (data: AgencyFormData) => {
-      if (agency) await updateMutation.mutateAsync({ id: agency.id, data })
-      else await createMutation.mutateAsync(data)
-    }
-
-    return (
-      <div className="card p-5 border-brand-200 bg-brand-50/30">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Nombre *</label>
-              <input className="input" placeholder="Inmobiliaria XYZ" {...register('name', { required: true })} />
-            </div>
-            <div>
-              <label className="label">Email de contacto</label>
-              <input className="input" type="email" placeholder="info@inmobiliaria.com" {...register('email')} />
-            </div>
-            <div>
-              <label className="label">Avisar con X días de anticipación</label>
-              <input className="input" type="number" min={1} max={90} {...register('diasAntesRecordatorio')} />
-            </div>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button type="button" className="btn-secondary" onClick={onClose}><X className="w-4 h-4" /> Cancelar</button>
-            <button type="submit" className="btn-primary" disabled={isSubmitting}>
-              <Check className="w-4 h-4" /> {agency ? 'Guardar' : 'Crear inmobiliaria'}
-            </button>
-          </div>
-        </form>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-8 max-w-2xl">
       <div>
@@ -120,13 +123,16 @@ export default function Settings({ agencyId, setAgencyId, reminderDays, setRemin
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-slate-900">Inmobiliarias</h2>
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
+          <button className="btn-primary" onClick={() => { setShowForm(true); setEditingAgency(undefined) }}>
             <Plus className="w-4 h-4" /> Nueva
           </button>
         </div>
 
         {showForm && !editingAgency && (
-          <AgencyForm onClose={() => setShowForm(false)} />
+          <AgencyForm
+            onClose={() => setShowForm(false)}
+            onSubmit={async (data) => { await createMutation.mutateAsync(data) }}
+          />
         )}
 
         {agencies.length === 0 && !showForm ? (
@@ -139,7 +145,11 @@ export default function Settings({ agencyId, setAgencyId, reminderDays, setRemin
             {agencies.map(agency => (
               <div key={agency.id}>
                 {editingAgency?.id === agency.id ? (
-                  <AgencyForm agency={agency} onClose={() => setEditingAgency(undefined)} />
+                  <AgencyForm
+                    agency={agency}
+                    onClose={() => setEditingAgency(undefined)}
+                    onSubmit={async (data) => { await updateMutation.mutateAsync({ id: agency.id, data }) }}
+                  />
                 ) : (
                   <div
                     className={`card p-4 flex items-center justify-between cursor-pointer hover:border-brand-200 transition-colors ${
@@ -160,7 +170,7 @@ export default function Settings({ agencyId, setAgencyId, reminderDays, setRemin
                       )}
                     </div>
                     <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                      <button className="btn-secondary py-1.5 px-3 text-xs" onClick={() => setEditingAgency(agency)}>
+                      <button className="btn-secondary py-1.5 px-3 text-xs" onClick={() => { setEditingAgency(agency); setShowForm(false) }}>
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button

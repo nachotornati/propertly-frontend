@@ -8,6 +8,13 @@ interface PropertyFormProps {
   onClose: () => void
 }
 
+const PROVINCIAS = [
+  'CABA','Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes',
+  'Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones',
+  'Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe',
+  'Santiago del Estero','Tierra del Fuego','Tucumán',
+]
+
 const BARRIOS_CABA = [
   'Almagro','Balvanera','Barracas','Belgrano','Boedo','Caballito','Chacarita',
   'Coghlan','Colegiales','Constitución','Flores','Floresta','La Boca','La Paternal',
@@ -25,22 +32,24 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
     defaultValues: initial
       ? {
           address: initial.address,
+          provincia: initial.provincia ?? 'CABA',
           barrio: initial.barrio,
           moneda: initial.moneda,
           precio: initial.precio,
-          mesInicio: initial.mesInicio?.slice(0, 7), // YYYY-MM
+          mesInicio: initial.mesInicio?.slice(0, 7),
           ajusteMeses: initial.ajusteMeses,
           indiceAjuste: initial.indiceAjuste,
           tenantName: initial.tenantName,
           notes: initial.notes,
         }
-      : { moneda: 'ARS', ajusteMeses: 3, indiceAjuste: 'ICL' },
+      : { moneda: 'ARS', provincia: 'CABA', ajusteMeses: 3, indiceAjuste: 'ICL' },
   })
 
   const moneda = watch('moneda')
+  const provincia = watch('provincia')
+  const isCABA = provincia === 'CABA'
 
   const handleFormSubmit = async (data: PropertyFormData) => {
-    // Convert YYYY-MM to YYYY-MM-01
     const mesInicio = data.mesInicio.length === 7 ? `${data.mesInicio}-01` : data.mesInicio
     await onSubmit({ ...data, mesInicio, precio: Number(data.precio), ajusteMeses: Number(data.ajusteMeses) })
   }
@@ -59,21 +68,40 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
+
             <div className="col-span-2">
-              <label className="label">Dirección</label>
+              <label className="label">Dirección <span className="text-red-500">*</span></label>
               <input
                 className="input"
                 placeholder="Ej: Av. Corrientes 1234, Piso 3A"
-                {...register('address')}
+                {...register('address', { required: 'Requerido' })}
               />
+              {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
+            </div>
+
+            <div>
+              <label className="label">Provincia <span className="text-red-500">*</span></label>
+              <select className="input" {...register('provincia', { required: 'Requerido' })}>
+                <option value="">Seleccioná una provincia</option>
+                {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              {errors.provincia && <p className="text-red-500 text-xs mt-1">{errors.provincia.message}</p>}
             </div>
 
             <div>
               <label className="label">Barrio <span className="text-red-500">*</span></label>
-              <select className="input" {...register('barrio', { required: 'Requerido' })}>
-                <option value="">Seleccioná un barrio</option>
-                {BARRIOS_CABA.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
+              {isCABA ? (
+                <select className="input" {...register('barrio', { required: 'Requerido' })}>
+                  <option value="">Seleccioná un barrio</option>
+                  {BARRIOS_CABA.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              ) : (
+                <input
+                  className="input"
+                  placeholder="Ej: Centro, Palermo, etc."
+                  {...register('barrio', { required: 'Requerido' })}
+                />
+              )}
               {errors.barrio && <p className="text-red-500 text-xs mt-1">{errors.barrio.message}</p>}
             </div>
 
@@ -82,9 +110,9 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
               <input className="input" placeholder="Nombre del inquilino" {...register('tenantName')} />
             </div>
 
-            <div>
+            <div className="flex flex-col justify-center">
               <label className="label">Moneda <span className="text-red-500">*</span></label>
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 {['ARS', 'USD'].map(m => (
                   <label key={m} className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" value={m} {...register('moneda', { required: true })} className="accent-brand-600" />
@@ -125,20 +153,27 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
             {moneda === 'ARS' && (
               <>
                 <div>
-                  <label className="label">Ajuste cada (meses) <span className="text-red-500">*</span></label>
-                  <select className="input" {...register('ajusteMeses', { required: true })}>
-                    <option value={1}>Mensual</option>
-                    <option value={2}>Bimestral</option>
-                    <option value={3}>Trimestral</option>
-                    <option value={4}>Cuatrimestral</option>
-                    <option value={6}>Semestral</option>
-                    <option value={12}>Anual</option>
-                  </select>
+                  <label className="label">Ajusta cada (meses) <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <input
+                      className="input pr-16"
+                      type="number"
+                      min="1"
+                      max="60"
+                      placeholder="3"
+                      {...register('ajusteMeses', {
+                        required: 'Requerido',
+                        min: { value: 1, message: 'Mínimo 1 mes' },
+                      })}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meses</span>
+                  </div>
+                  {errors.ajusteMeses && <p className="text-red-500 text-xs mt-1">{errors.ajusteMeses.message}</p>}
                 </div>
 
-                <div>
+                <div className="flex flex-col justify-center">
                   <label className="label">Índice de ajuste <span className="text-red-500">*</span></label>
-                  <div className="flex gap-3">
+                  <div className="flex gap-4">
                     {['ICL', 'IPC'].map(i => (
                       <label key={i} className="flex items-center gap-2 cursor-pointer">
                         <input type="radio" value={i} {...register('indiceAjuste', { required: true })} className="accent-brand-600" />
@@ -157,9 +192,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" className="btn-secondary" onClick={onClose}>
-              Cancelar
-            </button>
+            <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Guardando...' : initial ? 'Guardar cambios' : 'Agregar propiedad'}
             </button>

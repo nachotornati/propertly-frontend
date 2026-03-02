@@ -10,6 +10,7 @@ export interface Property {
   id: string
   agencyId: string
   address: string
+  provincia: string
   barrio: string
   moneda: 'ARS' | 'USD'
   precio: number

@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Building2, LayoutDashboard, Bell, Settings, ChevronDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { getAgencies } from '../services/api'
@@ -18,6 +18,8 @@ export default function Layout({ agencyId, setAgencyId }: LayoutProps) {
   const { data: agencies = [] } = useQuery({ queryKey: ['agencies'], queryFn: getAgencies })
   const [showPicker, setShowPicker] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+  const isSettings = location.pathname === '/settings'
 
   const currentAgency = agencies.find(a => a.id === agencyId)
 
@@ -108,7 +110,7 @@ export default function Layout({ agencyId, setAgencyId }: LayoutProps) {
 
       {/* Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {agencyId ? (
+        {agencyId || isSettings ? (
           <Outlet />
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
