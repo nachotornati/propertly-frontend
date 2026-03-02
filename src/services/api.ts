@@ -93,6 +93,12 @@ export const getVencidosAnteriores = (agencyId: string) =>
 export const notificarCobro = (id: string) =>
   api.post(`/api/cobros/${id}/notificar`).then(r => r.data)
 
+export const bulkCreateCobros = (agencyId: string) =>
+  api.post<{ created: number; skipped: number }>(`/api/agencies/${agencyId}/cobros-bulk-create`).then(r => r.data)
+
+export const bulkNotificarCobros = (agencyId: string) =>
+  api.post<{ sent: number; skipped: number; errors: string[] }>(`/api/agencies/${agencyId}/cobros-bulk-notificar`).then(r => r.data)
+
 // Public tenant view (no auth)
 export const getTenantView = (token: string) =>
   axios.get<TenantViewData>(`${BASE_URL}/api/public/tenant/${token}`).then(r => r.data)

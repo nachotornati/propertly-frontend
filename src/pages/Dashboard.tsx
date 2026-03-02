@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
-import { getProperties, getCobrosMesActual, getVencidosAnteriores } from '../services/api'
-import { Building2, CheckCircle, Clock, AlertTriangle, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getProperties, getCobrosMesActual, getVencidosAnteriores, bulkCreateCobros, bulkNotificarCobros } from '../services/api'
+import { Building2, CheckCircle, Clock, AlertTriangle, TrendingUp, Plus, MessageCircle } from 'lucide-react'
 import type { AjusteRecord, Cobro, CobroVencidoAnterior, Property } from '../types'
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -28,12 +29,45 @@ type CobroStatus = 'pagado' | 'pendiente' | 'vencido'
 
 function getStatus(prop: Property, cobrosMap: Map<string, Cobro>, dayOfMonth: number): CobroStatus {
   const cobro = cobrosMap.get(prop.id)
-  if (cobro?.pagado) return 'pagado'
+  if (!cobro || cobro.pagado) return 'pagado'
   if (dayOfMonth <= 10) return 'pendiente'
   return 'vencido'
 }
 
 export default function Dashboard({ agencyId }: DashboardProps) {
+  const queryClient = useQueryClient()
+  const [bulkCreating, setBulkCreating] = useState(false)
+  const [bulkNotifying, setBulkNotifying] = useState(false)
+
+  const handleBulkCreate = async () => {
+    setBulkCreating(true)
+    try {
+      const res = await bulkCreateCobros(agencyId)
+      queryClient.invalidateQueries({ queryKey: ['cobros-mes-actual'] })
+      queryClient.invalidateQueries({ queryKey: ['cobros-vencidos-anteriores', agencyId] })
+      alert(`✓ ${res.created} cobro${res.created !== 1 ? 's' : ''} creado${res.created !== 1 ? 's' : ''}. ${res.skipped} ya tenían cobro.`)
+    } catch (e: any) {
+      alert(e.response?.data?.error ?? 'Error al crear cobros')
+    } finally {
+      setBulkCreating(false)
+    }
+  }
+
+  const handleBulkNotificar = async () => {
+    setBulkNotifying(true)
+    try {
+      const res = await bulkNotificarCobros(agencyId)
+      let msg = `✓ ${res.sent} mensaje${res.sent !== 1 ? 's' : ''} enviado${res.sent !== 1 ? 's' : ''}.`
+      if (res.skipped > 0) msg += ` ${res.skipped} omitido${res.skipped !== 1 ? 's' : ''} (pagado o sin teléfono).`
+      if (res.errors.length > 0) msg += `\n\nErrores:\n${res.errors.join('\n')}`
+      alert(msg)
+    } catch (e: any) {
+      alert(e.response?.data?.error ?? 'Error al enviar recordatorios')
+    } finally {
+      setBulkNotifying(false)
+    }
+  }
+
   const { data: properties = [] } = useQuery({
     queryKey: ['properties', agencyId],
     queryFn: () => getProperties(agencyId),
@@ -97,12 +131,32 @@ export default function Dashboard({ agencyId }: DashboardProps) {
       {/* Por cobrar */}
       <div className="card">
         <div className="p-6 border-b border-slate-100">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Clock className="w-5 h-5 text-amber-500" />
             <h2 className="font-semibold text-slate-900">Por cobrar este mes</h2>
             {porCobrar.length > 0 && (
-              <span className="badge bg-amber-100 text-amber-700 ml-auto">{porCobrar.length}</span>
+              <span className="badge bg-amber-100 text-amber-700">{porCobrar.length}</span>
             )}
+            <div className="ml-auto flex gap-2">
+              <button
+                onClick={handleBulkCreate}
+                disabled={bulkCreating}
+                className="btn-secondary py-1.5 px-3 text-xs disabled:opacity-50"
+                title="Crear cobro del mes actual para todas las propiedades sin cobro"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {bulkCreating ? 'Creando...' : 'Crear cobros del mes'}
+              </button>
+              <button
+                onClick={handleBulkNotificar}
+                disabled={bulkNotifying}
+                className="btn-secondary py-1.5 px-3 text-xs text-green-600 border-green-200 hover:bg-green-50 disabled:opacity-50"
+                title="Enviar recordatorio por WhatsApp a todos los inquilinos con cobro pendiente"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                {bulkNotifying ? 'Enviando...' : 'Notificar todos'}
+              </button>
+            </div>
           </div>
         </div>
 

@@ -278,7 +278,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                         }}
                         className="btn-secondary py-1 px-2 text-xs"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Registrar
+                        <Plus className="w-3.5 h-3.5" /> Registrar cobro
                       </button>
                     )}
                   </div>

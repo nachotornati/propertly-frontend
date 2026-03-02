@@ -150,8 +150,13 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
             </div>
 
             <div>
-              <label className="label">Teléfono</label>
-              <input className="input" placeholder="Ej: +54 11 1234-5678" {...register('tenantPhone')} />
+              <label className="label">Teléfono <span className="text-red-500">*</span></label>
+              <input
+                className="input"
+                placeholder="Ej: +54 11 1234-5678"
+                {...register('tenantPhone', { required: 'Requerido' })}
+              />
+              {errors.tenantPhone && <p className="text-red-500 text-xs mt-1">{errors.tenantPhone.message}</p>}
             </div>
 
             <div className="col-span-2">
