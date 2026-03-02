@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Properties from './pages/Properties'
 import Reminders from './pages/Reminders'
 import Settings from './pages/Settings'
+import Login from './pages/Login'
 
 export default function App() {
   const [agencyId, setAgencyId] = useState<string>(() => localStorage.getItem('propertly_agency') ?? '')
@@ -13,9 +14,14 @@ export default function App() {
     return saved ? Number(saved) : 30
   })
 
-  const handleSetAgencyId = (id: string) => {
+  const isLoggedIn = !!localStorage.getItem('propertly_token')
+
+  const handleAuth = (id: string) => {
     setAgencyId(id)
-    localStorage.setItem('propertly_agency', id)
+  }
+
+  const handleLogout = () => {
+    setAgencyId('')
   }
 
   const handleSetReminderDays = (days: number) => {
@@ -23,17 +29,27 @@ export default function App() {
     localStorage.setItem('propertly_reminder_days', String(days))
   }
 
+  if (!isLoggedIn) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login onAuth={handleAuth} />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    )
+  }
+
   return (
     <Routes>
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route
         path="/"
-        element={<Layout agencyId={agencyId} setAgencyId={handleSetAgencyId} />}
+        element={<Layout agencyId={agencyId} onLogout={handleLogout} />}
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard agencyId={agencyId} reminderDays={reminderDays} />} />
         <Route path="properties" element={<Properties agencyId={agencyId} reminderDays={reminderDays} />} />
         <Route path="reminders" element={<Reminders agencyId={agencyId} reminderDays={reminderDays} />} />
-        <Route path="settings" element={<Settings agencyId={agencyId} setAgencyId={handleSetAgencyId} reminderDays={reminderDays} setReminderDays={handleSetReminderDays} />} />
+        <Route path="settings" element={<Settings agencyId={agencyId} setAgencyId={setAgencyId} reminderDays={reminderDays} setReminderDays={handleSetReminderDays} />} />
       </Route>
     </Routes>
   )
