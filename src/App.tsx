@@ -16,14 +16,16 @@ export default function App() {
     return saved ? Number(saved) : 30
   })
 
-  const isLoggedIn = !!localStorage.getItem('propertly_token')
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => !!localStorage.getItem('propertly_token'))
 
   const handleAuth = (id: string) => {
     setAgencyId(id)
+    setIsLoggedIn(true)
   }
 
   const handleLogout = () => {
     setAgencyId('')
+    setIsLoggedIn(false)
   }
 
   const handleSetReminderDays = (days: number) => {
