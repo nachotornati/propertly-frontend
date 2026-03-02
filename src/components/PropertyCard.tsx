@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { MapPin, Calendar, TrendingUp, User, Pencil, Trash2, AlertTriangle, Clock } from 'lucide-react'
+import { MapPin, Calendar, TrendingUp, User, Pencil, Trash2, AlertTriangle, Clock, ArrowRight, Info } from 'lucide-react'
 import type { Property } from '../types'
 import clsx from 'clsx'
 
@@ -15,11 +15,10 @@ export default function PropertyCard({ property, onEdit, onDelete, reminderDays 
   const isARS = property.moneda === 'ARS'
   const due = property.adjustmentDue
   const soon = isARS && !due && (property.daysUntilAdjustment ?? 999) <= reminderDays
+  const showAjuste = isARS && (due || soon) && property.ajusteInfo
 
-  const formatCurrency = (n: number, currency: string) => {
-    if (currency === 'USD') return `USD ${n.toLocaleString('es-AR')}`
-    return `$ ${n.toLocaleString('es-AR')}`
-  }
+  const formatCurrency = (n: number) =>
+    `$ ${Math.round(n).toLocaleString('es-AR')}`
 
   const statusBadge = () => {
     if (!isARS) return <span className="badge bg-slate-100 text-slate-600">Sin ajuste</span>
@@ -36,14 +35,12 @@ export default function PropertyCard({ property, onEdit, onDelete, reminderDays 
     )}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
-          {/* Dirección como título principal */}
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="font-semibold text-slate-900 truncate">
               {property.address || `${property.barrio}${property.provincia ? `, ${property.provincia}` : ''}`}
             </span>
           </div>
-          {/* Barrio y provincia como subtítulo */}
           <p className="text-sm text-slate-500 ml-6 truncate">
             {property.barrio}
             {property.provincia && property.provincia !== property.barrio && ` · ${property.provincia}`}
@@ -54,8 +51,10 @@ export default function PropertyCard({ property, onEdit, onDelete, reminderDays 
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-slate-50 rounded-lg p-3">
-          <p className="text-xs text-slate-400 mb-0.5">Precio</p>
-          <p className="font-bold text-slate-900">{formatCurrency(property.precio, property.moneda)}</p>
+          <p className="text-xs text-slate-400 mb-0.5">Precio actual</p>
+          <p className="font-bold text-slate-900">
+            {property.moneda === 'USD' ? `USD ${property.precio.toLocaleString('es-AR')}` : formatCurrency(property.precio)}
+          </p>
         </div>
 
         <div className="bg-slate-50 rounded-lg p-3">
@@ -89,6 +88,34 @@ export default function PropertyCard({ property, onEdit, onDelete, reminderDays 
           </>
         )}
       </div>
+
+      {/* Ajuste calculado con índice real */}
+      {showAjuste && property.ajusteInfo && (
+        <div className={clsx(
+          'rounded-lg p-3 mb-3 border',
+          due ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+        )}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              Nuevo valor ({property.indiceAjuste})
+            </span>
+            <span className="text-xs text-slate-500">
+              ×{Number(property.ajusteInfo.coeficiente).toFixed(4)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-500 line-through">{formatCurrency(property.precio)}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-base font-bold text-slate-900">{formatCurrency(property.ajusteInfo.nuevoPrecio)}</span>
+          </div>
+          {property.ajusteInfo.estimado && property.ajusteInfo.disclaimer && (
+            <p className="text-xs text-slate-400 mt-2 flex items-start gap-1">
+              <Info className="w-3 h-3 shrink-0 mt-0.5" />
+              {property.ajusteInfo.disclaimer}
+            </p>
+          )}
+        </div>
+      )}
 
       {property.tenantName && (
         <div className="flex items-center gap-1.5 text-sm text-slate-500 mb-3">

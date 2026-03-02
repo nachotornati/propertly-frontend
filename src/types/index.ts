@@ -24,6 +24,18 @@ export interface Property {
   nextAdjustmentDate?: string
   daysUntilAdjustment?: number
   adjustmentDue?: boolean
+  ajusteInfo?: AjusteInfo
 }
 
 export type PropertyFormData = Omit<Property, 'id' | 'agencyId' | 'createdAt' | 'nextAdjustmentDate' | 'daysUntilAdjustment' | 'adjustmentDue'>
+
+export interface AjusteInfo {
+  coeficiente: number
+  nuevoPrecio: number
+  valorDesde: number
+  fechaDesde: string
+  valorHasta: number
+  fechaHasta: string
+  estimado: boolean
+  disclaimer: string | null
+}

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getReminders } from '../services/api'
-import { Bell, AlertTriangle, Clock, Calendar } from 'lucide-react'
+import { Bell, AlertTriangle, Clock, Calendar, ArrowRight, Info } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useState } from 'react'
@@ -56,16 +56,33 @@ export default function Reminders({ agencyId, reminderDays }: RemindersProps) {
               </div>
               <div className="divide-y divide-slate-100">
                 {overdue.map(prop => (
-                  <div key={prop.id} className="flex items-center justify-between px-6 py-4">
-                    <div>
-                      <p className="font-semibold text-slate-900">{prop.barrio}</p>
-                      {prop.address && <p className="text-sm text-slate-500">{prop.address}</p>}
-                      {prop.tenantName && <p className="text-sm text-slate-400">Inquilino: {prop.tenantName}</p>}
+                  <div key={prop.id} className="px-6 py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-slate-900">{prop.address || prop.barrio}</p>
+                        {prop.address && <p className="text-sm text-slate-500">{prop.barrio}{prop.provincia ? ` · ${prop.provincia}` : ''}</p>}
+                        {prop.tenantName && <p className="text-sm text-slate-400">Inquilino: {prop.tenantName}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="badge bg-red-100 text-red-700">Vencido</span>
+                        <p className="text-xs text-slate-400 mt-1">{prop.indiceAjuste} · c/{prop.ajusteMeses} meses</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="badge bg-red-100 text-red-700">Vencido</span>
-                      <p className="text-xs text-slate-400 mt-1">{prop.indiceAjuste} · c/{prop.ajusteMeses} meses</p>
-                    </div>
+                    {prop.ajusteInfo && (
+                      <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-slate-500 line-through">$ {Math.round(prop.precio).toLocaleString('es-AR')}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-bold text-slate-900">$ {Math.round(prop.ajusteInfo.nuevoPrecio).toLocaleString('es-AR')}</span>
+                          <span className="text-xs text-slate-500">(×{Number(prop.ajusteInfo.coeficiente).toFixed(4)})</span>
+                        </div>
+                        {prop.ajusteInfo.estimado && prop.ajusteInfo.disclaimer && (
+                          <p className="text-xs text-slate-400 mt-1.5 flex items-start gap-1">
+                            <Info className="w-3 h-3 shrink-0 mt-0.5" />{prop.ajusteInfo.disclaimer}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -80,29 +97,41 @@ export default function Reminders({ agencyId, reminderDays }: RemindersProps) {
               </div>
               <div className="divide-y divide-slate-100">
                 {upcoming.map(prop => (
-                  <div key={prop.id} className="flex items-center justify-between px-6 py-4">
-                    <div>
-                      <p className="font-semibold text-slate-900">{prop.barrio}</p>
-                      {prop.address && <p className="text-sm text-slate-500">{prop.address}</p>}
-                      {prop.tenantName && <p className="text-sm text-slate-400">Inquilino: {prop.tenantName}</p>}
+                  <div key={prop.id} className="px-6 py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-slate-900">{prop.address || prop.barrio}</p>
+                        {prop.address && <p className="text-sm text-slate-500">{prop.barrio}{prop.provincia ? ` · ${prop.provincia}` : ''}</p>}
+                        {prop.tenantName && <p className="text-sm text-slate-400">Inquilino: {prop.tenantName}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={`badge ${(prop.daysUntilAdjustment ?? 999) <= 7 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          <Clock className="w-3 h-3" /> En {prop.daysUntilAdjustment} días
+                        </span>
+                        {prop.nextAdjustmentDate && (
+                          <p className="text-xs text-slate-400 mt-1 flex items-center gap-1 justify-end">
+                            <Calendar className="w-3 h-3" />
+                            {format(parseISO(prop.nextAdjustmentDate), "d 'de' MMMM yyyy", { locale: es })}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-400">{prop.indiceAjuste} · c/{prop.ajusteMeses} meses</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`badge ${
-                        (prop.daysUntilAdjustment ?? 999) <= 7
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        <Clock className="w-3 h-3" />
-                        En {prop.daysUntilAdjustment} días
-                      </span>
-                      {prop.nextAdjustmentDate && (
-                        <p className="text-xs text-slate-400 mt-1 flex items-center gap-1 justify-end">
-                          <Calendar className="w-3 h-3" />
-                          {format(parseISO(prop.nextAdjustmentDate), "d 'de' MMMM yyyy", { locale: es })}
-                        </p>
-                      )}
-                      <p className="text-xs text-slate-400">{prop.indiceAjuste} · c/{prop.ajusteMeses} meses</p>
-                    </div>
+                    {prop.ajusteInfo && (
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-slate-500 line-through">$ {Math.round(prop.precio).toLocaleString('es-AR')}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-bold text-slate-900">$ {Math.round(prop.ajusteInfo.nuevoPrecio).toLocaleString('es-AR')}</span>
+                          <span className="text-xs text-slate-500">(×{Number(prop.ajusteInfo.coeficiente).toFixed(4)})</span>
+                        </div>
+                        {prop.ajusteInfo.estimado && prop.ajusteInfo.disclaimer && (
+                          <p className="text-xs text-slate-400 mt-1.5 flex items-start gap-1">
+                            <Info className="w-3 h-3 shrink-0 mt-0.5" />{prop.ajusteInfo.disclaimer}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
