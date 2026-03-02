@@ -125,7 +125,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
       <div className="flex justify-between items-center">
         <p className="text-sm text-slate-500">
           {hasContract
-            ? `${property.duracionMeses} meses · ${cobros.length} registrado${cobros.length !== 1 ? 's' : ''}`
+            ? `${contractMonths.length} meses · ${cobros.length} registrado${cobros.length !== 1 ? 's' : ''}`
             : `${cobros.length} cobro${cobros.length !== 1 ? 's' : ''} registrado${cobros.length !== 1 ? 's' : ''}`}
         </p>
         {!hasContract && (
