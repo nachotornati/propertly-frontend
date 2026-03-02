@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO, startOfMonth, addMonths } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Plus, Pencil, Trash2, CheckCircle, Clock, TrendingUp, AlertTriangle } from 'lucide-react'
-import { getCobros, createCobro, updateCobro, deleteCobro, getVencidosAnteriores } from '../services/api'
+import { Plus, Pencil, Trash2, CheckCircle, Clock, TrendingUp, AlertTriangle, MessageCircle } from 'lucide-react'
+import { getCobros, createCobro, updateCobro, deleteCobro, getVencidosAnteriores, notificarCobro } from '../services/api'
 import CobroForm from './CobroForm'
 import type { AjusteRecord, Cobro, CobroVencidoAnterior, Property } from '../types'
 
@@ -77,6 +77,19 @@ export default function CobrosTab({ property }: CobrosTabProps) {
   const [editing, setEditing] = useState<Cobro | undefined>()
   const [newMes, setNewMes] = useState<string | undefined>()
   const [newMonto, setNewMonto] = useState<number | undefined>()
+  const [notifyingId, setNotifyingId] = useState<string | null>(null)
+
+  const sendWhatsApp = async (cobro: Cobro) => {
+    setNotifyingId(cobro.id)
+    try {
+      await notificarCobro(cobro.id)
+      alert('Mensaje enviado por WhatsApp ✓')
+    } catch (e: any) {
+      alert(e.response?.data?.error ?? 'Error al enviar WhatsApp')
+    } finally {
+      setNotifyingId(null)
+    }
+  }
 
   const { data: cobros = [], isLoading } = useQuery({
     queryKey: ['cobros', property.id],
@@ -226,13 +239,25 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                     {cobro ? (
                       <>
                         {!cobro.pagado && (
-                          <button
-                            onClick={() => markPagado(cobro)}
-                            className="btn-secondary py-1 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                            title="Marcar como pagado"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => markPagado(cobro)}
+                              className="btn-secondary py-1 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                              title="Marcar como pagado"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                            {property.tenantPhone && (
+                              <button
+                                onClick={() => sendWhatsApp(cobro)}
+                                disabled={notifyingId === cobro.id}
+                                className="btn-secondary py-1 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50 disabled:opacity-50"
+                                title="Enviar recordatorio por WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </>
                         )}
                         <button onClick={() => setEditing(cobro)} className="btn-secondary py-1 px-2 text-xs">
                           <Pencil className="w-3.5 h-3.5" />
@@ -347,13 +372,25 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                 </div>
                 <div className="flex gap-1 shrink-0">
                   {!cobro.pagado && (
-                    <button
-                      onClick={() => markPagado(cobro)}
-                      className="btn-secondary py-1 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                      title="Marcar como pagado"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => markPagado(cobro)}
+                        className="btn-secondary py-1 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                        title="Marcar como pagado"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      </button>
+                      {property.tenantPhone && (
+                        <button
+                          onClick={() => sendWhatsApp(cobro)}
+                          disabled={notifyingId === cobro.id}
+                          className="btn-secondary py-1 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50 disabled:opacity-50"
+                          title="Enviar recordatorio por WhatsApp"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </>
                   )}
                   <button onClick={() => setEditing(cobro)} className="btn-secondary py-1 px-2 text-xs">
                     <Pencil className="w-3.5 h-3.5" />

@@ -90,6 +90,9 @@ export const getCobrosMesActual = (agencyId: string) =>
 export const getVencidosAnteriores = (agencyId: string) =>
   api.get<CobroVencidoAnterior[]>(`/api/agencies/${agencyId}/cobros-vencidos-anteriores`).then(r => r.data)
 
+export const notificarCobro = (id: string) =>
+  api.post(`/api/cobros/${id}/notificar`).then(r => r.data)
+
 // Public tenant view (no auth)
 export const getTenantView = (token: string) =>
   axios.get<TenantViewData>(`${BASE_URL}/api/public/tenant/${token}`).then(r => r.data)
