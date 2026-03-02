@@ -131,6 +131,13 @@ export default function CobrosTab({ property }: CobrosTabProps) {
     })
   }
 
+  const markVencido = (cobro: Cobro) => {
+    updateMutation.mutate({
+      id: cobro.id,
+      data: { ...cobro, vencido: true },
+    })
+  }
+
   const contractMonths = buildContractMonths(property)
   const cobroByMes = new Map(cobros.map(c => [mesKey(c.mes), c]))
   const adjCoefByMonth = new Map((property.historialAjustes ?? []).map(r => [r.fecha.substring(0, 7), r.coeficiente]))
@@ -149,7 +156,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
         </p>
         {!hasContract && (
           <button className="btn-primary py-1.5 px-3 text-sm" onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4" /> Nuevo cobro
+            <Plus className="w-4 h-4" /> Agregar intento de cobro
           </button>
         )}
       </div>
@@ -166,7 +173,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
             const cobro = cobroByMes.get(key)
             const mesValue = `${key}-01`
             const isPast = month < todayMonthStart
-            const isOverdue = isPast && (!cobro || !cobro.pagado)
+            const isOverdue = (isPast && (!cobro || !cobro.pagado)) || cobro?.vencido === true
             return (
               <div key={key} className={`rounded-xl border p-3 ${cobro ? 'bg-slate-50 border-slate-100' : isOverdue ? 'bg-red-50/30 border-dashed border-red-200' : 'bg-white border-dashed border-slate-200'}`}>
                 <div className="flex items-center justify-between gap-3">
@@ -247,6 +254,15 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                             >
                               <CheckCircle className="w-3.5 h-3.5" />
                             </button>
+                            {!cobro.vencido && !isPast && (
+                              <button
+                                onClick={() => markVencido(cobro)}
+                                className="btn-secondary py-1 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                                title="Marcar como vencido"
+                              >
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             {property.tenantPhone && (
                               <button
                                 onClick={() => sendWhatsApp(cobro)}
@@ -278,7 +294,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                         }}
                         className="btn-secondary py-1 px-2 text-xs"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Registrar cobro
+                        <Plus className="w-3.5 h-3.5" /> Agregar intento de cobro
                       </button>
                     )}
                   </div>
@@ -318,14 +334,14 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                     onClick={() => { setNewMes(mesIso); setNewMonto(precio); setShowForm(true) }}
                     className="btn-secondary py-1 px-2 text-xs shrink-0"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Registrar
+                    <Plus className="w-3.5 h-3.5" /> Agregar intento de cobro
                   </button>
                 </div>
               </div>
             )
           })}
           {cobros.map(cobro => {
-            const isPastCobro = parseISO(cobro.mes) < todayMonthStart
+            const isVencidoCobro = parseISO(cobro.mes) < todayMonthStart || cobro.vencido === true
             return (
             <div key={cobro.id} className="bg-slate-50 rounded-xl p-4">
               <div className="flex items-start justify-between gap-3">
@@ -338,7 +354,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                       <span className="badge bg-emerald-100 text-emerald-700 text-xs">
                         <CheckCircle className="w-3 h-3" /> Pagado
                       </span>
-                    ) : isPastCobro ? (
+                    ) : isVencidoCobro ? (
                       <span className="badge bg-red-100 text-red-700 text-xs">
                         <AlertTriangle className="w-3 h-3" /> Vencido
                       </span>
@@ -380,6 +396,15 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
                       </button>
+                      {!cobro.vencido && !isVencidoCobro && (
+                        <button
+                          onClick={() => markVencido(cobro)}
+                          className="btn-secondary py-1 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                          title="Marcar como vencido"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       {property.tenantPhone && (
                         <button
                           onClick={() => sendWhatsApp(cobro)}

@@ -198,6 +198,17 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
               </p>
             </div>
 
+            {property.duracionMeses && (
+              <div className="bg-slate-50 rounded-xl p-3">
+                <p className="text-xs text-slate-400 mb-0.5 flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Vencimiento del contrato
+                </p>
+                <p className="font-medium text-slate-700">
+                  {format(addMonths(parseISO(property.mesInicio), property.duracionMeses - 1), "MMMM yyyy", { locale: es })}
+                </p>
+              </div>
+            )}
+
             {isARS && (
               <div className="bg-slate-50 rounded-xl p-3">
                 <p className="text-xs text-slate-400 mb-0.5 flex items-center gap-1">

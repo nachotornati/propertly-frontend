@@ -95,6 +95,7 @@ export interface Cobro {
   montoBase: number
   montoTotal: number
   pagado: boolean
+  vencido?: boolean
   fechaPago?: string
   notes?: string
   extras: CobroExtra[]

@@ -30,6 +30,7 @@ export default function CobroForm({ initial, montoBase, defaultMes: defaultMesPr
   const [loading, setLoading] = useState(false)
 
   const parseMonto = (v: string) => parseFloat(v) || 0
+  const preventComma = (e: React.KeyboardEvent) => { if (e.key === ',') e.preventDefault() }
   const total = base + extras.reduce((sum, e) => sum + parseMonto(e.monto), 0)
 
   const addExtra = () => setExtras(ex => [...ex, { descripcion: '', monto: '' }])
@@ -60,7 +61,7 @@ export default function CobroForm({ initial, montoBase, defaultMes: defaultMesPr
       <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
           <h2 className="text-lg font-semibold text-slate-900">
-            {initial ? 'Editar cobro' : 'Nuevo cobro'}
+            {initial ? 'Editar cobro' : 'Nuevo intento de cobro'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X className="w-5 h-5" />
@@ -89,6 +90,7 @@ export default function CobroForm({ initial, montoBase, defaultMes: defaultMesPr
                   min="0"
                   value={base}
                   onChange={e => setBase(Number(e.target.value))}
+                  onKeyDown={preventComma}
                   required
                 />
               </div>
@@ -123,6 +125,7 @@ export default function CobroForm({ initial, montoBase, defaultMes: defaultMesPr
                         placeholder="0"
                         value={extra.monto}
                         onChange={e => updateExtra(i, 'monto', e.target.value)}
+                        onKeyDown={preventComma}
                         title="Positivo = recargo, negativo = descuento"
                       />
                     </div>
@@ -180,7 +183,7 @@ export default function CobroForm({ initial, montoBase, defaultMes: defaultMesPr
           <div className="flex justify-end gap-3 pt-1">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Guardando...' : initial ? 'Guardar cambios' : 'Registrar cobro'}
+              {loading ? 'Guardando...' : initial ? 'Guardar cambios' : 'Agregar intento de cobro'}
             </button>
           </div>
         </form>

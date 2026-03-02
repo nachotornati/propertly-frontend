@@ -68,9 +68,6 @@ export default function TenantView() {
 
   // Build all months to show: contract months (if duracionMeses set) or just cobros
   let monthsToShow: { key: string; date: Date; cobro: Cobro | undefined }[] = []
-  // Next month key
-  const nextMonthDate = addMonths(startOfMonth(new Date()), 1)
-  const nextKey = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`
 
   if (data.duracionMeses && data.mesInicio) {
     const start = startOfMonth(parseISO(data.mesInicio))
@@ -79,7 +76,7 @@ export default function TenantView() {
       const date = addMonths(start, i)
       if (date < registrationMonth) continue
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      if (key <= nextKey) monthsToShow.push({ key, date, cobro: cobroByMes.get(key) })
+      if (key <= currentKey) monthsToShow.push({ key, date, cobro: cobroByMes.get(key) })
     }
     monthsToShow.reverse()
   } else {

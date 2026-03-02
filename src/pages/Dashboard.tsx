@@ -25,11 +25,12 @@ interface DashboardProps {
 
 const formatARS = (n: number) => `$ ${Math.round(n).toLocaleString('es-AR')}`
 
-type CobroStatus = 'pagado' | 'pendiente' | 'vencido'
+type CobroStatus = 'pagado' | 'pendiente' | 'vencido' | 'sin-cobro'
 
 function getStatus(prop: Property, cobrosMap: Map<string, Cobro>, dayOfMonth: number): CobroStatus {
   const cobro = cobrosMap.get(prop.id)
-  if (!cobro || cobro.pagado) return 'pagado'
+  if (!cobro) return 'sin-cobro'
+  if (cobro.pagado) return 'pagado'
   if (dayOfMonth <= 10) return 'pendiente'
   return 'vencido'
 }
@@ -92,7 +93,10 @@ export default function Dashboard({ agencyId }: DashboardProps) {
   const vencidosAnterioresIds = new Set(vencidosAnteriores.map(v => v.property.id))
 
   const pagados = properties.filter(p => getStatus(p, cobrosMap, dayOfMonth) === 'pagado' && !vencidosAnterioresIds.has(p.id))
-  const pendientes = properties.filter(p => getStatus(p, cobrosMap, dayOfMonth) === 'pendiente')
+  const pendientes = properties.filter(p => {
+    const s = getStatus(p, cobrosMap, dayOfMonth)
+    return s === 'pendiente' || s === 'sin-cobro'
+  })
   const vencidos = properties.filter(p => getStatus(p, cobrosMap, dayOfMonth) === 'vencido' || vencidosAnterioresIds.has(p.id))
 
   const stats = [
@@ -190,6 +194,10 @@ export default function Dashboard({ agencyId }: DashboardProps) {
                       {isVencido ? (
                         <span className="badge bg-red-100 text-red-700 text-xs">
                           <AlertTriangle className="w-3 h-3" /> Vencido
+                        </span>
+                      ) : !cobro ? (
+                        <span className="badge bg-slate-100 text-slate-500 text-xs">
+                          Sin cobro
                         </span>
                       ) : (
                         <span className="badge bg-amber-100 text-amber-700 text-xs">

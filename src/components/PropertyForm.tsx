@@ -68,6 +68,8 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
   const currentMonth = new Date().toISOString().slice(0, 7)
   const contractAlreadyStarted = !initial && mesInicio && mesInicio < currentMonth
 
+  const preventComma = (e: React.KeyboardEvent) => { if (e.key === ',') e.preventDefault() }
+
   const handleFormSubmit = async (data: FormValues) => {
     // Disabled inputs may come back as undefined; fall back to the locked initial values.
     const mesInicio = data.mesInicio ?? initial?.mesInicio?.slice(0, 7) ?? ''
@@ -216,6 +218,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                   className={`input pl-10 ${initial ? 'opacity-60 cursor-not-allowed' : ''}`}
                   type="number" min="0" step="0.01" placeholder="0"
                   disabled={!!initial}
+                  onKeyDown={preventComma}
                   {...register('precio', { required: !initial && 'Requerido', min: { value: 0, message: 'Debe ser positivo' } })}
                 />
               </div>
@@ -245,6 +248,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                 <input
                   className="input pr-16" type="number"
                   min={initial?.duracionMeses ?? 1} max="120" placeholder="Ej: 24"
+                  onKeyDown={preventComma}
                   {...register('duracionMeses', { min: { value: initial?.duracionMeses ?? 1, message: initial?.duracionMeses ? `Mínimo ${initial.duracionMeses} meses` : 'Mínimo 1 mes' } })}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meses</span>
@@ -259,6 +263,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                   <div className="relative">
                     <input
                       className="input pr-16" type="number" min="1" max="60" placeholder="3"
+                      onKeyDown={preventComma}
                       {...register('ajusteMeses', { required: 'Requerido', min: { value: 1, message: 'Mínimo 1 mes' } })}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meses</span>
@@ -311,6 +316,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                   <input
                     className="input pl-7"
                     type="number" min="0" step="0.01" placeholder="Dejar vacío para no modificar"
+                    onKeyDown={preventComma}
                     {...register('precioActualInput')}
                   />
                 </div>

@@ -22,12 +22,13 @@ export default function PropertyCard({ property, cobro, hasVencidoAnterior, onEd
     `$ ${Math.round(n).toLocaleString('es-AR')}`
 
   const dayOfMonth = new Date().getDate()
-  const cobroStatus = cobro?.pagado ? 'pagado' : dayOfMonth <= 10 ? 'pendiente' : 'vencido'
+  const cobroStatus = !cobro ? 'sin-cobro' : cobro.pagado ? 'pagado' : dayOfMonth <= 10 ? 'pendiente' : 'vencido'
   const effectiveStatus = hasVencidoAnterior ? 'vencido' : cobroStatus
 
   const statusBadge = () => {
     if (effectiveStatus === 'pagado') return <span className="badge bg-emerald-100 text-emerald-700"><CheckCircle className="w-3 h-3" /> Pagado</span>
     if (effectiveStatus === 'vencido') return <span className="badge bg-red-100 text-red-700"><AlertTriangle className="w-3 h-3" /> Vencido</span>
+    if (effectiveStatus === 'sin-cobro') return <span className="badge bg-slate-100 text-slate-500">Sin cobro</span>
     return <span className="badge bg-amber-100 text-amber-700"><Clock className="w-3 h-3" /> Pendiente</span>
   }
 
