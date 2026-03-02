@@ -192,7 +192,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                           <span className="badge bg-emerald-100 text-emerald-700 text-xs">
                             <CheckCircle className="w-3 h-3" /> Pagado
                           </span>
-                        ) : isPast ? (
+                        ) : isOverdue ? (
                           <span className="badge bg-red-100 text-red-700 text-xs">
                             <AlertTriangle className="w-3 h-3" /> Vencido
                           </span>
