@@ -30,13 +30,13 @@ export default function Landing() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand-600/20 rounded-full blur-[120px]" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-6 pt-28 pb-32 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400 mb-8">
+        <div className="relative max-w-6xl mx-auto px-6 pt-14 sm:pt-24 pb-16 sm:pb-32 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400 mb-6 sm:mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Gestión de alquileres para inmobiliarias argentinas
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-5 sm:mb-6">
             Administrá tus alquileres{' '}
             <span className="bg-gradient-to-r from-brand-400 to-violet-400 bg-clip-text text-transparent">
               sin complicaciones

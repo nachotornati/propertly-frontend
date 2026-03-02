@@ -99,6 +99,9 @@ export default function Login({ onAuth }: LoginProps) {
                     onChange={e => setUsername(e.target.value)}
                     required
                     autoFocus
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                 </div>
                 <div>
@@ -110,6 +113,8 @@ export default function Login({ onAuth }: LoginProps) {
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                     required
+                    autoCapitalize="none"
+                    autoCorrect="off"
                   />
                 </div>
                 <div>
@@ -121,6 +126,8 @@ export default function Login({ onAuth }: LoginProps) {
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     required
+                    autoCapitalize="none"
+                    autoCorrect="off"
                   />
                 </div>
 
@@ -162,6 +169,9 @@ export default function Login({ onAuth }: LoginProps) {
                     onChange={e => setUsername(e.target.value)}
                     required
                     autoFocus
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                 </div>
 
@@ -174,6 +184,8 @@ export default function Login({ onAuth }: LoginProps) {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
+                    autoCapitalize="none"
+                    autoCorrect="off"
                   />
                 </div>
 
