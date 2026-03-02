@@ -26,7 +26,7 @@ export default function Layout({ agencyId, setAgencyId }: LayoutProps) {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/properties', icon: Building2, label: 'Propiedades' },
-    { to: '/reminders', icon: Bell, label: 'Recordatorios' },
+    { to: '/reminders', icon: Bell, label: 'Ajustes' },
     { to: '/settings', icon: Settings, label: 'Configuración' },
   ]
 

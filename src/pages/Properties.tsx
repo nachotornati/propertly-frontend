@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getProperties, createProperty, updateProperty, deleteProperty } from '../services/api'
 import PropertyCard from '../components/PropertyCard'
 import PropertyForm from '../components/PropertyForm'
+import PropertyDetailModal from '../components/PropertyDetailModal'
 import { Plus, Search, Building2 } from 'lucide-react'
 import type { Property, PropertyFormData } from '../types'
 
@@ -15,6 +16,7 @@ export default function Properties({ agencyId, reminderDays }: PropertiesProps) 
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Property | undefined>()
+  const [detail, setDetail] = useState<Property | undefined>()
   const [search, setSearch] = useState('')
   const [filterMoneda, setFilterMoneda] = useState<'ALL' | 'ARS' | 'USD'>('ALL')
 
@@ -125,12 +127,23 @@ export default function Properties({ agencyId, reminderDays }: PropertiesProps) 
             <PropertyCard
               key={prop.id}
               property={prop}
+              onClick={() => setDetail(prop)}
               onEdit={() => setEditing(prop)}
               onDelete={() => handleDelete(prop.id)}
               reminderDays={reminderDays}
             />
           ))}
         </div>
+      )}
+
+      {detail && (
+        <PropertyDetailModal
+          property={detail}
+          reminderDays={reminderDays}
+          onEdit={() => setEditing(detail)}
+          onDelete={() => handleDelete(detail.id)}
+          onClose={() => setDetail(undefined)}
+        />
       )}
 
       {(showForm || editing) && (

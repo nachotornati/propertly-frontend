@@ -18,16 +18,19 @@ export interface Property {
   ajusteMeses: number
   indiceAjuste?: 'ICL' | 'IPC'
   tenantName?: string
+  tenantPhone?: string
   notes?: string
   createdAt: string
   // Calculated by backend
+  precioActual?: number
   nextAdjustmentDate?: string
   daysUntilAdjustment?: number
   adjustmentDue?: boolean
   ajusteInfo?: AjusteInfo
+  historialAjustes?: AjusteRecord[]
 }
 
-export type PropertyFormData = Omit<Property, 'id' | 'agencyId' | 'createdAt' | 'nextAdjustmentDate' | 'daysUntilAdjustment' | 'adjustmentDue'>
+export type PropertyFormData = Omit<Property, 'id' | 'agencyId' | 'createdAt' | 'nextAdjustmentDate' | 'daysUntilAdjustment' | 'adjustmentDue' | 'precioActual' | 'historialAjustes'>
 
 export interface AjusteInfo {
   coeficiente: number
@@ -38,4 +41,11 @@ export interface AjusteInfo {
   fechaHasta: string
   estimado: boolean
   disclaimer: string | null
+}
+
+export interface AjusteRecord {
+  fecha: string
+  precioAntes: number
+  precioAhora: number
+  coeficiente: number
 }

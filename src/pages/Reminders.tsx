@@ -74,7 +74,7 @@ export default function Reminders({ agencyId, reminderDays }: RemindersProps) {
                           <span className="text-sm text-slate-500 line-through">$ {Math.round(prop.precio).toLocaleString('es-AR')}</span>
                           <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                           <span className="font-bold text-slate-900">$ {Math.round(prop.ajusteInfo.nuevoPrecio).toLocaleString('es-AR')}</span>
-                          <span className="text-xs text-slate-500">(×{Number(prop.ajusteInfo.coeficiente).toFixed(4)})</span>
+                          <span className="text-xs text-slate-500">(+{((Number(prop.ajusteInfo.coeficiente) - 1) * 100).toFixed(1)}%)</span>
                         </div>
                         {prop.ajusteInfo.estimado && prop.ajusteInfo.disclaimer && (
                           <p className="text-xs text-slate-400 mt-1.5 flex items-start gap-1">
@@ -123,7 +123,7 @@ export default function Reminders({ agencyId, reminderDays }: RemindersProps) {
                           <span className="text-sm text-slate-500 line-through">$ {Math.round(prop.precio).toLocaleString('es-AR')}</span>
                           <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                           <span className="font-bold text-slate-900">$ {Math.round(prop.ajusteInfo.nuevoPrecio).toLocaleString('es-AR')}</span>
-                          <span className="text-xs text-slate-500">(×{Number(prop.ajusteInfo.coeficiente).toFixed(4)})</span>
+                          <span className="text-xs text-slate-500">(+{((Number(prop.ajusteInfo.coeficiente) - 1) * 100).toFixed(1)}%)</span>
                         </div>
                         {prop.ajusteInfo.estimado && prop.ajusteInfo.disclaimer && (
                           <p className="text-xs text-slate-400 mt-1.5 flex items-start gap-1">

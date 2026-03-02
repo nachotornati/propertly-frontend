@@ -40,6 +40,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
           ajusteMeses: initial.ajusteMeses,
           indiceAjuste: initial.indiceAjuste,
           tenantName: initial.tenantName,
+          tenantPhone: initial.tenantPhone,
           notes: initial.notes,
         }
       : { moneda: 'ARS', provincia: 'CABA', ajusteMeses: 3, indiceAjuste: 'ICL' },
@@ -108,6 +109,11 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
             <div>
               <label className="label">Inquilino</label>
               <input className="input" placeholder="Nombre del inquilino" {...register('tenantName')} />
+            </div>
+
+            <div>
+              <label className="label">Teléfono del inquilino</label>
+              <input className="input" placeholder="Ej: +54 11 1234-5678" {...register('tenantPhone')} />
             </div>
 
             <div className="flex flex-col justify-center">
