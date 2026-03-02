@@ -74,8 +74,10 @@ export default function TenantView() {
 
   if (data.duracionMeses && data.mesInicio) {
     const start = startOfMonth(parseISO(data.mesInicio))
+    const registrationMonth = data.createdAt ? startOfMonth(parseISO(data.createdAt)) : start
     for (let i = 0; i < data.duracionMeses; i++) {
       const date = addMonths(start, i)
+      if (date < registrationMonth) continue
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       if (key <= nextKey) monthsToShow.push({ key, date, cobro: cobroByMes.get(key) })
     }

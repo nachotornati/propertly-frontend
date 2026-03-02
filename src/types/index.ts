@@ -68,6 +68,7 @@ export interface TenantViewData {
   nextAdjustmentDate?: string
   ajusteInfo?: AjusteInfo
   historialAjustes?: AjusteRecord[]
+  createdAt?: string
   cobros: Cobro[]
 }
 
