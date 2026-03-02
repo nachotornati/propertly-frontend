@@ -41,7 +41,7 @@ function buildMonthlyHistory(property: Property): { date: Date; precio: number; 
 }
 
 export default function PropertyDetailModal({ property, reminderDays, onEdit, onDelete, onClose }: Props) {
-  const [activeTab, setActiveTab] = useState<'detalle' | 'cobros'>('detalle')
+  const [activeTab, setActiveTab] = useState<'detalle' | 'cobros' | 'historial'>('detalle')
   const [copied, setCopied] = useState(false)
 
   const handleShare = () => {
@@ -114,13 +114,13 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
         {/* Tabs */}
         <div className="shrink-0 px-6 pt-4 border-b border-slate-100">
           <div className="flex rounded-lg bg-slate-100 p-1">
-            {(['detalle', 'cobros'] as const).map(t => (
-              <button key={t} onClick={() => setActiveTab(t)}
+            {(['detalle', 'cobros', ...(isARS && monthlyHistory.length > 0 ? ['historial'] : [])] as const).map(t => (
+              <button key={t} onClick={() => setActiveTab(t as typeof activeTab)}
                 className={clsx(
                   'flex-1 py-2 text-sm font-medium rounded-md transition-colors',
                   activeTab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 )}>
-                {t === 'detalle' ? 'Detalle' : 'Cobros'}
+                {t === 'detalle' ? 'Detalle' : t === 'cobros' ? 'Cobros' : 'Historial'}
               </button>
             ))}
           </div>
@@ -128,9 +128,50 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
-        {activeTab === 'cobros'
-          ? <div className="px-6 py-5"><CobrosTab property={property} /></div>
-          : (
+        {activeTab === 'cobros' ? (
+          <div className="px-6 py-5"><CobrosTab property={property} /></div>
+        ) : activeTab === 'historial' ? (
+          <div className="px-6 py-5">
+            <div className="rounded-xl border border-slate-100 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-400">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left font-medium">Mes</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Alquiler</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {[...monthlyHistory].reverse().map((row, i) => (
+                    <tr
+                      key={i}
+                      className={clsx(
+                        isCurrentMonth(row.date) && 'bg-brand-50',
+                        row.isAdjustment && !isCurrentMonth(row.date) && 'bg-emerald-50/40',
+                      )}
+                    >
+                      <td className="px-4 py-2.5 font-medium text-slate-700 flex items-center gap-2">
+                        {format(row.date, "MMMM yyyy", { locale: es })}
+                        {row.isAdjustment && (
+                          <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                            ajuste
+                          </span>
+                        )}
+                        {isCurrentMonth(row.date) && (
+                          <span className="text-[10px] font-semibold text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded-full">
+                            hoy
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-slate-900">
+                        {formatCurrency(row.precio)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
         <div className="px-6 py-5 space-y-5">
 
           {/* Price */}
@@ -236,50 +277,6 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
             </div>
           )}
 
-          {/* Monthly rent history */}
-          {monthlyHistory.length > 0 && (
-            <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-2">Historial mensual</p>
-              <div className="rounded-xl border border-slate-100 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-slate-400">
-                    <tr>
-                      <th className="px-4 py-2.5 text-left font-medium">Mes</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Alquiler</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {[...monthlyHistory].reverse().map((row, i) => (
-                      <tr
-                        key={i}
-                        className={clsx(
-                          isCurrentMonth(row.date) && 'bg-brand-50',
-                          row.isAdjustment && !isCurrentMonth(row.date) && 'bg-emerald-50/40',
-                        )}
-                      >
-                        <td className="px-4 py-2.5 font-medium text-slate-700 flex items-center gap-2">
-                          {format(row.date, "MMMM yyyy", { locale: es })}
-                          {row.isAdjustment && (
-                            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">
-                              ajuste
-                            </span>
-                          )}
-                          {isCurrentMonth(row.date) && (
-                            <span className="text-[10px] font-semibold text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded-full">
-                              hoy
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 text-right font-semibold text-slate-900">
-                          {formatCurrency(row.precio)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
         )}
         </div>

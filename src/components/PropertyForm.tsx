@@ -51,12 +51,14 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
           tenantFactura: initial.tenantFactura,
           tenantPersonaJuridica: initial.tenantPersonaJuridica,
           tenantDocumento: initial.tenantDocumento,
+          unidadFuncional: initial.unidadFuncional,
           notes: initial.notes,
         }
       : { moneda: 'ARS', provincia: 'CABA', ajusteMeses: 3, indiceAjuste: 'ICL' },
   })
 
-  const moneda = watch('moneda')
+  // Disabled radio/inputs may return undefined from RHF; fall back to the initial value.
+  const moneda = watch('moneda') ?? initial?.moneda
   const provincia = watch('provincia')
   const mesInicio = watch('mesInicio')
   const personaJuridicaRaw = watch('tenantPersonaJuridica')
@@ -67,15 +69,18 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
   const contractAlreadyStarted = !initial && mesInicio && mesInicio < currentMonth
 
   const handleFormSubmit = async (data: FormValues) => {
-    const mesInicioFull = data.mesInicio.length === 7 ? `${data.mesInicio}-01` : data.mesInicio
+    // Disabled inputs may come back as undefined; fall back to the locked initial values.
+    const mesInicio = data.mesInicio ?? initial?.mesInicio?.slice(0, 7) ?? ''
+    const mesInicioFull = mesInicio.length === 7 ? `${mesInicio}-01` : mesInicio
     await onSubmit({
       ...data,
+      moneda: (data.moneda ?? initial?.moneda) as 'ARS' | 'USD',
       mesInicio: mesInicioFull,
-      precio: Number(data.precio),
+      precio: Number(data.precio ?? initial?.precio),
       ajusteMeses: Number(data.ajusteMeses),
       duracionMeses: data.duracionMeses ? Number(data.duracionMeses) : undefined,
       precioActualInput: data.precioActualInput ? Number(data.precioActualInput) : undefined,
-    } as any)
+    })
   }
 
   return (
@@ -97,10 +102,19 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
               <label className="label">Dirección <span className="text-red-500">*</span></label>
               <input
                 className="input"
-                placeholder="Ej: Av. Corrientes 1234, Piso 3A"
+                placeholder="Ej: Av. Corrientes 1234"
                 {...register('address', { required: 'Requerido' })}
               />
               {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
+            </div>
+
+            <div className="col-span-2">
+              <label className="label">Unidad funcional</label>
+              <input
+                className="input"
+                placeholder="Ej: Piso 3 Depto A, UF 42, Local 5"
+                {...register('unidadFuncional')}
+              />
             </div>
 
             <div>
@@ -179,7 +193,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
               <div className={`flex gap-4 ${initial ? 'opacity-60 pointer-events-none' : ''}`}>
                 {['ARS', 'USD'].map(m => (
                   <label key={m} className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" value={m} {...register('moneda', { required: true })} className="accent-brand-600" disabled={!!initial} />
+                    <input type="radio" value={m} {...register('moneda', { required: !initial, disabled: !!initial })} className="accent-brand-600" disabled={!!initial} />
                     <span className="text-sm font-medium">{m === 'ARS' ? '🇦🇷 Pesos' : '🇺🇸 Dólares'}</span>
                   </label>
                 ))}
@@ -197,7 +211,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                   className={`input pl-10 ${initial ? 'opacity-60 cursor-not-allowed' : ''}`}
                   type="number" min="0" step="0.01" placeholder="0"
                   disabled={!!initial}
-                  {...register('precio', { required: 'Requerido', min: { value: 0, message: 'Debe ser positivo' } })}
+                  {...register('precio', { required: !initial && 'Requerido', min: { value: 0, message: 'Debe ser positivo' } })}
                 />
               </div>
               {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada</p>}
@@ -212,7 +226,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                 max={currentMonth}
                 disabled={!!initial}
                 {...register('mesInicio', {
-                  required: 'Requerido',
+                  required: !initial && 'Requerido',
                   validate: v => !v || v <= currentMonth || 'El mes de inicio no puede ser futuro',
                 })}
               />
@@ -267,32 +281,33 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                 <div className="flex items-start gap-2">
                   <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-amber-800">
-                    Este contrato ya inició. Ingresá el <strong>precio actual</strong> (luego de todos los ajustes aplicados) y el <strong>próximo mes de ajuste</strong>. No es necesario cargar pagos anteriores.
+                    Este contrato ya inició. El historial de ajustes se calcula automáticamente desde el mes de inicio.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">Precio actual <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                      <input
-                        className="input pl-8"
-                        type="number" min="0" step="0.01" placeholder="0"
-                        {...register('precioActualInput', { required: contractAlreadyStarted ? 'Requerido' : false })}
-                      />
-                    </div>
-                    {errors.precioActualInput && <p className="text-red-500 text-xs mt-1">{errors.precioActualInput.message}</p>}
-                  </div>
-                  <div>
-                    <label className="label">Próximo mes de ajuste <span className="text-red-500">*</span></label>
-                    <input
-                      className="input"
-                      type="month"
-                      min={currentMonth}
-                      {...register('proximoMesAjusteInput', { required: contractAlreadyStarted ? 'Requerido' : false })}
-                    />
-                    {errors.proximoMesAjusteInput && <p className="text-red-500 text-xs mt-1">{errors.proximoMesAjusteInput.message}</p>}
-                  </div>
+                <div>
+                  <label className="label">Próximo mes de ajuste</label>
+                  <input
+                    className="input"
+                    type="month"
+                    {...register('proximoMesAjusteInput')}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Indicá cuándo corresponde el próximo ajuste para calibrar el ciclo correctamente.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Price correction for existing ARS properties */}
+            {initial && moneda === 'ARS' && (
+              <div className="col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                <p className="text-sm font-medium text-slate-700">Corregir precio actual</p>
+                <p className="text-xs text-slate-500">Si el precio calculado no coincide con el real, ingresalo acá. Los ajustes futuros se calcularán desde este valor.</p>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                  <input
+                    className="input pl-7"
+                    type="number" min="0" step="0.01" placeholder="Dejar vacío para no modificar"
+                    {...register('precioActualInput')}
+                  />
                 </div>
               </div>
             )}

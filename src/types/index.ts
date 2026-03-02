@@ -25,6 +25,7 @@ export interface Property {
   tenantFactura?: boolean
   tenantPersonaJuridica?: boolean
   tenantDocumento?: string
+  unidadFuncional?: string
   notes?: string
   createdAt: string
   // Calculated by backend
@@ -34,6 +35,9 @@ export interface Property {
   adjustmentDue?: boolean
   ajusteInfo?: AjusteInfo
   historialAjustes?: AjusteRecord[]
+  // Input-only fields for creation of already-started contracts (not returned by backend)
+  precioActualInput?: number
+  proximoMesAjusteInput?: string
 }
 
 export type PropertyFormData = Omit<Property, 'id' | 'agencyId' | 'createdAt' | 'nextAdjustmentDate' | 'daysUntilAdjustment' | 'adjustmentDue' | 'precioActual' | 'historialAjustes'>

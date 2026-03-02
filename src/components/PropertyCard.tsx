@@ -49,6 +49,7 @@ export default function PropertyCard({ property, cobro, hasVencidoAnterior, onEd
             </span>
           </div>
           <p className="text-sm text-slate-500 ml-6 truncate">
+            {property.unidadFuncional && <span className="font-medium text-slate-600">{property.unidadFuncional} · </span>}
             {property.barrio}
             {property.provincia && property.provincia !== property.barrio && ` · ${property.provincia}`}
           </p>

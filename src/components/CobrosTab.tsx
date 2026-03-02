@@ -22,9 +22,9 @@ interface CobrosTabProps {
 
 const formatARS = (n: number) => `$ ${Math.round(n).toLocaleString('es-AR')}`
 
-/** Returns months from max(mesInicio, createdAt_month) to mesInicio + duracionMeses - 1,
- *  in reverse order (newest first), with the computed rent price for each month. */
-function buildContractMonths(property: Property): { date: Date; precio: number }[] {
+/** Returns all contract months (mesInicio + duracionMeses).
+ *  precio is null for months at/after nextAdjustmentDate (price not yet known). */
+function buildContractMonths(property: Property): { date: Date; precio: number | null }[] {
   if (!property.duracionMeses) return []
   const start = startOfMonth(parseISO(property.mesInicio))
 
@@ -32,6 +32,11 @@ function buildContractMonths(property: Property): { date: Date; precio: number }
   const registrationMonth = property.createdAt
     ? startOfMonth(parseISO(property.createdAt))
     : start
+
+  // Months at or after the next adjustment date have an unknown price
+  const cutoffDate = property.nextAdjustmentDate
+    ? startOfMonth(parseISO(property.nextAdjustmentDate))
+    : null
 
   // Sort historial ascending by date
   const historial = [...(property.historialAjustes ?? [])].sort((a, b) => a.fecha.localeCompare(b.fecha))
@@ -43,19 +48,20 @@ function buildContractMonths(property: Property): { date: Date; precio: number }
   }
 
   // Starting price: price before first adjustment; fallback to precioActual if no historial
-  // (handles contracts added retroactively with precioBaseOverride)
   let currentPrice = historial.length > 0
     ? Number(historial[0].precioAntes)
     : Number(property.precioActual ?? property.precio)
 
-  const months: { date: Date; precio: number }[] = []
+  const months: { date: Date; precio: number | null }[] = []
   for (let i = 0; i < property.duracionMeses; i++) {
     const date = addMonths(start, i)
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     if (adjByMonth.has(key)) currentPrice = adjByMonth.get(key)!
     // Skip months before the property was registered (but still advance price through them)
     if (date < registrationMonth) continue
-    months.push({ date, precio: currentPrice })
+    // Use null price for months where the index hasn't been published yet
+    const priceKnown = !cutoffDate || date < cutoffDate
+    months.push({ date, precio: priceKnown ? currentPrice : null })
   }
   return months
 }
@@ -180,12 +186,14 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                           <span className="badge bg-red-100 text-red-700 text-xs">
                             <AlertTriangle className="w-3 h-3" /> Vencido
                           </span>
-                          <span className="text-sm font-semibold text-slate-400">{formatARS(monthPrecio)}</span>
+                          {monthPrecio !== null && <span className="text-sm font-semibold text-slate-400">{formatARS(monthPrecio)}</span>}
                         </>
                       ) : (
                         <>
                           <span className="badge bg-slate-100 text-slate-400 text-xs">Sin registrar</span>
-                          <span className="text-sm font-semibold text-slate-400">{formatARS(monthPrecio)}</span>
+                          {monthPrecio !== null
+                            ? <span className="text-sm font-semibold text-slate-400">{formatARS(monthPrecio)}</span>
+                            : <span className="text-xs text-slate-300 italic">precio a confirmar</span>}
                         </>
                       )}
                     </div>
@@ -238,7 +246,11 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                       </>
                     ) : (
                       <button
-                        onClick={() => { setNewMes(mesValue); setNewMonto(monthPrecio); setShowForm(true) }}
+                        onClick={() => {
+                          setNewMes(mesValue)
+                          setNewMonto(monthPrecio !== null ? monthPrecio : undefined)
+                          setShowForm(true)
+                        }}
                         className="btn-secondary py-1 px-2 text-xs"
                       >
                         <Plus className="w-3.5 h-3.5" /> Registrar
