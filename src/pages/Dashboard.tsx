@@ -171,9 +171,10 @@ export default function Dashboard({ agencyId }: DashboardProps) {
             {porCobrar.map(prop => {
               const cobro = cobrosMap.get(prop.id)
               const status = getStatus(prop, cobrosMap, dayOfMonth)
+              const isVencido = status === 'vencido' || vencidosAnterioresIds.has(prop.id)
               const monto = cobro ? Number(cobro.montoTotal) : Number(prop.precioActual ?? prop.precio)
               return (
-                <div key={prop.id} className={`flex items-center justify-between px-6 py-4 ${status === 'vencido' ? 'bg-red-50/40' : ''}`}>
+                <div key={prop.id} className={`flex items-center justify-between px-6 py-4 ${isVencido ? 'bg-red-50/40' : ''}`}>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-slate-900">{prop.address || prop.barrio}</span>
@@ -186,7 +187,7 @@ export default function Dashboard({ agencyId }: DashboardProps) {
                   <div className="text-right shrink-0">
                     <p className="font-bold text-slate-900 text-sm">{formatARS(monto)}</p>
                     <div className="flex items-center gap-1 justify-end mt-0.5 flex-wrap">
-                      {status === 'vencido' ? (
+                      {isVencido ? (
                         <span className="badge bg-red-100 text-red-700 text-xs">
                           <AlertTriangle className="w-3 h-3" /> Vencido
                         </span>
