@@ -260,7 +260,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                                 className="btn-secondary py-1 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50"
                                 title="Marcar como vencido"
                               >
-                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <AlertTriangle className="w-3.5 h-3.5" /> Vencido
                               </button>
                             )}
                             {property.tenantPhone && (
@@ -402,7 +402,7 @@ export default function CobrosTab({ property }: CobrosTabProps) {
                           className="btn-secondary py-1 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50"
                           title="Marcar como vencido"
                         >
-                          <AlertTriangle className="w-3.5 h-3.5" />
+                          <AlertTriangle className="w-3.5 h-3.5" /> Vencido
                         </button>
                       )}
                       {property.tenantPhone && (

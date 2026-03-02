@@ -22,7 +22,7 @@ export default function PropertyCard({ property, cobro, hasVencidoAnterior, onEd
     `$ ${Math.round(n).toLocaleString('es-AR')}`
 
   const dayOfMonth = new Date().getDate()
-  const cobroStatus = !cobro ? 'sin-cobro' : cobro.pagado ? 'pagado' : dayOfMonth <= 10 ? 'pendiente' : 'vencido'
+  const cobroStatus = !cobro ? 'sin-cobro' : cobro.pagado ? 'pagado' : (cobro.vencido || dayOfMonth > 10) ? 'vencido' : 'pendiente'
   const effectiveStatus = hasVencidoAnterior ? 'vencido' : cobroStatus
 
   const statusBadge = () => {

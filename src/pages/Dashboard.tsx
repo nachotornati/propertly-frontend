@@ -31,8 +31,8 @@ function getStatus(prop: Property, cobrosMap: Map<string, Cobro>, dayOfMonth: nu
   const cobro = cobrosMap.get(prop.id)
   if (!cobro) return 'sin-cobro'
   if (cobro.pagado) return 'pagado'
-  if (dayOfMonth <= 10) return 'pendiente'
-  return 'vencido'
+  if (cobro.vencido || dayOfMonth > 10) return 'vencido'
+  return 'pendiente'
 }
 
 export default function Dashboard({ agencyId }: DashboardProps) {
