@@ -209,8 +209,12 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
               <input
                 className={`input ${initial ? 'opacity-60 cursor-not-allowed' : ''}`}
                 type="month"
+                max={currentMonth}
                 disabled={!!initial}
-                {...register('mesInicio', { required: 'Requerido' })}
+                {...register('mesInicio', {
+                  required: 'Requerido',
+                  validate: v => !v || v <= currentMonth || 'El mes de inicio no puede ser futuro',
+                })}
               />
               {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada</p>}
               {errors.mesInicio && <p className="text-red-500 text-xs mt-1">{errors.mesInicio.message}</p>}
