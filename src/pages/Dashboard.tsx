@@ -1,44 +1,84 @@
 import { useQuery } from '@tanstack/react-query'
-import { getProperties, getReminders } from '../services/api'
-import { Building2, AlertTriangle, Clock, TrendingUp, DollarSign } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { getProperties, getCobrosMesActual, getVencidosAnteriores } from '../services/api'
+import { Building2, CheckCircle, Clock, AlertTriangle, TrendingUp } from 'lucide-react'
+import type { AjusteRecord, Cobro, CobroVencidoAnterior, Property } from '../types'
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+function formatMes(isoDate: string) {
+  const [year, month] = isoDate.split('-')
+  return `${MESES[parseInt(month) - 1]} ${year}`
+}
+function priceForMonth(key: string, historial: AjusteRecord[], precioActual: number): number {
+  if (!historial || historial.length === 0) return precioActual
+  let price = historial[0].precioAntes
+  for (const adj of historial) {
+    if (adj.fecha.substring(0, 7) <= key) price = adj.precioAhora
+  }
+  return price
+}
 
 interface DashboardProps {
   agencyId: string
   reminderDays: number
 }
 
-export default function Dashboard({ agencyId, reminderDays }: DashboardProps) {
+const formatARS = (n: number) => `$ ${Math.round(n).toLocaleString('es-AR')}`
+
+type CobroStatus = 'pagado' | 'pendiente' | 'vencido'
+
+function getStatus(prop: Property, cobrosMap: Map<string, Cobro>, dayOfMonth: number): CobroStatus {
+  const cobro = cobrosMap.get(prop.id)
+  if (cobro?.pagado) return 'pagado'
+  if (dayOfMonth <= 10) return 'pendiente'
+  return 'vencido'
+}
+
+export default function Dashboard({ agencyId }: DashboardProps) {
   const { data: properties = [] } = useQuery({
     queryKey: ['properties', agencyId],
     queryFn: () => getProperties(agencyId),
     enabled: !!agencyId,
   })
 
-  const { data: reminders = [] } = useQuery({
-    queryKey: ['reminders', agencyId, reminderDays],
-    queryFn: () => getReminders(agencyId, reminderDays),
+  const { data: cobros = [] } = useQuery({
+    queryKey: ['cobros-mes-actual'],
+    queryFn: () => getCobrosMesActual(agencyId),
     enabled: !!agencyId,
   })
 
-  const arsProps = properties.filter(p => p.moneda === 'ARS')
-  const usdProps = properties.filter(p => p.moneda === 'USD')
-  const overdueProps = arsProps.filter(p => p.adjustmentDue)
-  const soonProps = reminders.filter(p => !p.adjustmentDue)
+  const { data: vencidosAnteriores = [] } = useQuery<CobroVencidoAnterior[]>({
+    queryKey: ['cobros-vencidos-anteriores', agencyId],
+    queryFn: () => getVencidosAnteriores(agencyId),
+    enabled: !!agencyId,
+  })
+
+  const today = new Date()
+  const dayOfMonth = today.getDate()
+  const cobrosMap = new Map(cobros.map((c: Cobro) => [c.propertyId, c]))
+  const vencidosAnterioresIds = new Set(vencidosAnteriores.map(v => v.property.id))
+
+  const pagados = properties.filter(p => getStatus(p, cobrosMap, dayOfMonth) === 'pagado' && !vencidosAnterioresIds.has(p.id))
+  const pendientes = properties.filter(p => getStatus(p, cobrosMap, dayOfMonth) === 'pendiente')
+  const vencidos = properties.filter(p => getStatus(p, cobrosMap, dayOfMonth) === 'vencido' || vencidosAnterioresIds.has(p.id))
 
   const stats = [
     { label: 'Total propiedades', value: properties.length, icon: Building2, color: 'brand' },
-    { label: 'En pesos', value: arsProps.length, icon: TrendingUp, color: 'violet' },
-    { label: 'En dólares', value: usdProps.length, icon: DollarSign, color: 'emerald' },
-    { label: 'Ajuste vencido', value: overdueProps.length, icon: AlertTriangle, color: 'red' },
+    { label: 'Al día', value: pagados.length, icon: CheckCircle, color: 'emerald' },
+    { label: 'Pendiente', value: pendientes.length, icon: Clock, color: 'amber' },
+    { label: 'Vencido', value: vencidos.length, icon: AlertTriangle, color: 'red' },
   ]
+
+  // Dedup: vencidos first, then any pendientes not already in the list
+  const porCobrarMap = new Map<string, Property>()
+  for (const p of vencidos) porCobrarMap.set(p.id, p)
+  for (const p of pendientes) porCobrarMap.set(p.id, p)
+  const porCobrar = [...porCobrarMap.values()]
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 mt-1">Resumen de tu cartera de alquileres</p>
+        <p className="text-slate-500 mt-1">Resumen de cobros del mes actual</p>
       </div>
 
       {/* Stats */}
@@ -54,86 +94,110 @@ export default function Dashboard({ agencyId, reminderDays }: DashboardProps) {
         ))}
       </div>
 
-      {/* Upcoming adjustments */}
+      {/* Por cobrar */}
       <div className="card">
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-amber-500" />
-            <h2 className="font-semibold text-slate-900">Próximos ajustes</h2>
-            <span className="badge bg-amber-100 text-amber-700 ml-auto">
-              {reminders.length} en los próximos {reminderDays} días
-            </span>
+            <h2 className="font-semibold text-slate-900">Por cobrar este mes</h2>
+            {porCobrar.length > 0 && (
+              <span className="badge bg-amber-100 text-amber-700 ml-auto">{porCobrar.length}</span>
+            )}
           </div>
         </div>
 
-        {reminders.length === 0 ? (
+        {porCobrar.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
-            <Clock className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">Sin ajustes próximos</p>
-            <p className="text-sm mt-1">No hay propiedades que ajusten en los próximos {reminderDays} días</p>
+            <CheckCircle className="w-10 h-10 mx-auto mb-3 opacity-40" />
+            <p className="font-medium">Todo al día</p>
+            <p className="text-sm mt-1">Todos los cobros del mes están registrados y pagados</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {reminders.map(prop => (
-              <div key={prop.id} className={`flex items-center justify-between px-6 py-4 ${prop.adjustmentDue ? 'bg-red-50/50' : ''}`}>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-900">{prop.barrio}</span>
-                    {prop.address && <span className="text-slate-400 text-sm">· {prop.address}</span>}
+            {porCobrar.map(prop => {
+              const cobro = cobrosMap.get(prop.id)
+              const status = getStatus(prop, cobrosMap, dayOfMonth)
+              const monto = cobro ? Number(cobro.montoTotal) : Number(prop.precioActual ?? prop.precio)
+              return (
+                <div key={prop.id} className={`flex items-center justify-between px-6 py-4 ${status === 'vencido' ? 'bg-red-50/40' : ''}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-900">{prop.address || prop.barrio}</span>
+                      {prop.address && <span className="text-slate-400 text-sm">· {prop.barrio}</span>}
+                    </div>
+                    {prop.tenantName && (
+                      <p className="text-sm text-slate-500 mt-0.5">{prop.tenantName}</p>
+                    )}
                   </div>
-                  {prop.tenantName && (
-                    <p className="text-sm text-slate-500 mt-0.5">{prop.tenantName}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  {prop.adjustmentDue ? (
-                    <span className="badge bg-red-100 text-red-700">
-                      <AlertTriangle className="w-3 h-3" /> Vencido
-                    </span>
-                  ) : (
-                    <div>
-                      <span className="badge bg-amber-100 text-amber-700">
-                        En {prop.daysUntilAdjustment} días
-                      </span>
-                      {prop.nextAdjustmentDate && (
-                        <p className="text-xs text-slate-400 mt-1">
-                          {format(parseISO(prop.nextAdjustmentDate), "d MMM", { locale: es })}
-                        </p>
+                  <div className="text-right shrink-0">
+                    <p className="font-bold text-slate-900 text-sm">{formatARS(monto)}</p>
+                    <div className="flex items-center gap-1 justify-end mt-0.5 flex-wrap">
+                      {status === 'vencido' ? (
+                        <span className="badge bg-red-100 text-red-700 text-xs">
+                          <AlertTriangle className="w-3 h-3" /> Vencido
+                        </span>
+                      ) : (
+                        <span className="badge bg-amber-100 text-amber-700 text-xs">
+                          <Clock className="w-3 h-3" /> Pendiente
+                        </span>
+                      )}
+                      {prop.adjustmentDue && (
+                        <span className="badge bg-violet-100 text-violet-700 text-xs">
+                          <TrendingUp className="w-3 h-3" /> Ajuste
+                        </span>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
 
-      {/* Overdue */}
-      {overdueProps.length > 0 && (
-        <div className="card border-red-200">
-          <div className="p-6 border-b border-red-100 bg-red-50/50 rounded-t-xl">
+      {/* Cobros vencidos de meses anteriores */}
+      {vencidosAnteriores.length > 0 && (
+        <div className="card">
+          <div className="p-6 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red-500" />
-              <h2 className="font-semibold text-red-900">Ajustes vencidos ({overdueProps.length})</h2>
+              <h2 className="font-semibold text-slate-900">Cobros anteriores vencidos</h2>
+              <span className="badge bg-red-100 text-red-700 ml-auto">{vencidosAnteriores.length}</span>
             </div>
           </div>
-          <div className="divide-y divide-red-50">
-            {overdueProps.map(prop => (
-              <div key={prop.id} className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <span className="font-medium text-slate-900">{prop.barrio}</span>
-                  {prop.address && <span className="text-slate-400 text-sm"> · {prop.address}</span>}
+          <div className="divide-y divide-slate-100">
+            {vencidosAnteriores.map((item, i) => {
+              const prop = item.property
+              const mesKeyStr = item.mes.substring(0, 7)
+              const monto = item.cobro
+                ? Number(item.cobro.montoTotal)
+                : priceForMonth(mesKeyStr, prop.historialAjustes ?? [], Number(prop.precioActual ?? prop.precio))
+              return (
+                <div key={i} className="flex items-center justify-between px-6 py-4 bg-red-50/40">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-900">{prop.address || prop.barrio}</span>
+                      {prop.address && <span className="text-slate-400 text-sm">· {prop.barrio}</span>}
+                    </div>
+                    {prop.tenantName && (
+                      <p className="text-sm text-slate-500 mt-0.5">{prop.tenantName}</p>
+                    )}
+                    <p className="text-xs text-red-600 mt-0.5 font-medium">{formatMes(item.mes)}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-bold text-slate-900 text-sm">{formatARS(monto)}</p>
+                    <span className="badge bg-red-100 text-red-700 text-xs mt-0.5">
+                      <AlertTriangle className="w-3 h-3" />
+                      {item.cobro ? 'Sin pagar' : 'Sin registrar'}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right text-sm">
-                  <p className="text-red-600 font-medium">Ajuste {prop.indiceAjuste}</p>
-                  <p className="text-slate-400">{prop.ajusteMeses} meses</p>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
+
     </div>
   )
 }

@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { format, parseISO, startOfMonth, addMonths } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { X, MapPin, Calendar, TrendingUp, User, Phone, Pencil, Trash2, AlertTriangle, Clock, ArrowRight, Info, FileText } from 'lucide-react'
+import { X, MapPin, Calendar, TrendingUp, User, Phone, Pencil, Trash2, AlertTriangle, Clock, ArrowRight, Info, FileText, Share2, Check } from 'lucide-react'
 import type { Property } from '../types'
 import clsx from 'clsx'
+import CobrosTab from './CobrosTab'
 
 interface Props {
   property: Property
@@ -39,6 +41,17 @@ function buildMonthlyHistory(property: Property): { date: Date; precio: number; 
 }
 
 export default function PropertyDetailModal({ property, reminderDays, onEdit, onDelete, onClose }: Props) {
+  const [activeTab, setActiveTab] = useState<'detalle' | 'cobros'>('detalle')
+  const [copied, setCopied] = useState(false)
+
+  const handleShare = () => {
+    if (!property.tenantToken) return
+    const url = `${window.location.origin}/t/${property.tenantToken}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
   const isARS = property.moneda === 'ARS'
   const due = property.adjustmentDue
   const soon = isARS && !due && (property.daysUntilAdjustment ?? 999) <= reminderDays
@@ -62,12 +75,12 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
 
       {/* Panel */}
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className={clsx(
-          'sticky top-0 z-10 px-6 py-5 border-b border-slate-100 bg-white rounded-t-2xl',
+          'shrink-0 px-6 py-5 border-b border-slate-100 bg-white rounded-t-2xl',
           due && 'bg-red-50 border-red-100',
           soon && !due && 'bg-amber-50 border-amber-100',
         )}>
@@ -98,7 +111,26 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="shrink-0 px-6 pt-4 border-b border-slate-100">
+          <div className="flex rounded-lg bg-slate-100 p-1">
+            {(['detalle', 'cobros'] as const).map(t => (
+              <button key={t} onClick={() => setActiveTab(t)}
+                className={clsx(
+                  'flex-1 py-2 text-sm font-medium rounded-md transition-colors',
+                  activeTab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                )}>
+                {t === 'detalle' ? 'Detalle' : 'Cobros'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+        {activeTab === 'cobros'
+          ? <div className="px-6 py-5"><CobrosTab property={property} /></div>
+          : (
         <div className="px-6 py-5 space-y-5">
 
           {/* Price */}
@@ -249,21 +281,36 @@ export default function PropertyDetailModal({ property, reminderDays, onEdit, on
             </div>
           )}
         </div>
+        )}
+        </div>
 
         {/* Footer actions */}
-        <div className="sticky bottom-0 px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl flex justify-end gap-2">
-          <button
-            onClick={() => { onEdit(); onClose() }}
-            className="btn-secondary"
-          >
-            <Pencil className="w-4 h-4" /> Editar
-          </button>
-          <button
-            onClick={() => { onDelete(); onClose() }}
-            className="btn text-red-600 hover:bg-red-50 border border-red-200"
-          >
-            <Trash2 className="w-4 h-4" /> Eliminar
-          </button>
+        <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl flex items-center justify-between gap-2">
+          <div>
+            {property.tenantToken && (
+              <button
+                onClick={handleShare}
+                className={`btn-secondary text-sm transition-all ${copied ? 'text-emerald-600 border-emerald-300 bg-emerald-50' : ''}`}
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                {copied ? '¡Link copiado!' : 'Compartir con inquilino'}
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { onEdit(); onClose() }}
+              className="btn-secondary"
+            >
+              <Pencil className="w-4 h-4" /> Editar
+            </button>
+            <button
+              onClick={() => { onDelete(); onClose() }}
+              className="btn text-red-600 hover:bg-red-50 border border-red-200"
+            >
+              <Trash2 className="w-4 h-4" /> Eliminar
+            </button>
+          </div>
         </div>
       </div>
     </div>

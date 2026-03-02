@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getProperties, createProperty, updateProperty, deleteProperty } from '../services/api'
+import { getProperties, createProperty, updateProperty, deleteProperty, getCobrosMesActual, getVencidosAnteriores } from '../services/api'
 import PropertyCard from '../components/PropertyCard'
 import PropertyForm from '../components/PropertyForm'
 import PropertyDetailModal from '../components/PropertyDetailModal'
 import { Plus, Search, Building2 } from 'lucide-react'
-import type { Property, PropertyFormData } from '../types'
+import type { Cobro, CobroVencidoAnterior, Property, PropertyFormData } from '../types'
 
 interface PropertiesProps {
   agencyId: string
@@ -25,6 +25,20 @@ export default function Properties({ agencyId, reminderDays }: PropertiesProps) 
     queryFn: () => getProperties(agencyId),
     enabled: !!agencyId,
   })
+
+  const { data: cobros = [] } = useQuery({
+    queryKey: ['cobros-mes-actual'],
+    queryFn: () => getCobrosMesActual(agencyId),
+    enabled: !!agencyId,
+  })
+  const cobrosMap = new Map(cobros.map((c: Cobro) => [c.propertyId, c]))
+
+  const { data: vencidosAnteriores = [] } = useQuery<CobroVencidoAnterior[]>({
+    queryKey: ['cobros-vencidos-anteriores', agencyId],
+    queryFn: () => getVencidosAnteriores(agencyId),
+    enabled: !!agencyId,
+  })
+  const vencidosAnterioresSet = new Set(vencidosAnteriores.map(v => v.property.id))
 
   const createMutation = useMutation({
     mutationFn: (data: PropertyFormData) => createProperty(agencyId, data),
@@ -127,6 +141,8 @@ export default function Properties({ agencyId, reminderDays }: PropertiesProps) 
             <PropertyCard
               key={prop.id}
               property={prop}
+              cobro={cobrosMap.get(prop.id)}
+              hasVencidoAnterior={vencidosAnterioresSet.has(prop.id)}
               onClick={() => setDetail(prop)}
               onEdit={() => setEditing(prop)}
               onDelete={() => handleDelete(prop.id)}

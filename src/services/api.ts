@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Agency, Property, PropertyFormData } from '../types'
+import type { Agency, Property, PropertyFormData, Cobro, CobroVencidoAnterior, TenantViewData } from '../types'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -67,3 +67,26 @@ export const deleteProperty = (id: string) =>
 // Reminders
 export const getReminders = (agencyId: string, days = 30) =>
   api.get<Property[]>(`/api/agencies/${agencyId}/reminders?days=${days}`).then(r => r.data)
+
+// Cobros
+export const getCobros = (propertyId: string) =>
+  api.get<Cobro[]>(`/api/properties/${propertyId}/cobros`).then(r => r.data)
+
+export const createCobro = (propertyId: string, data: Partial<Cobro>) =>
+  api.post<Cobro>(`/api/properties/${propertyId}/cobros`, data).then(r => r.data)
+
+export const updateCobro = (id: string, data: Partial<Cobro>) =>
+  api.put<Cobro>(`/api/cobros/${id}`, data).then(r => r.data)
+
+export const deleteCobro = (id: string) =>
+  api.delete(`/api/cobros/${id}`)
+
+export const getCobrosMesActual = (agencyId: string) =>
+  api.get<Cobro[]>(`/api/agencies/${agencyId}/cobros-mes-actual`).then(r => r.data)
+
+export const getVencidosAnteriores = (agencyId: string) =>
+  api.get<CobroVencidoAnterior[]>(`/api/agencies/${agencyId}/cobros-vencidos-anteriores`).then(r => r.data)
+
+// Public tenant view (no auth)
+export const getTenantView = (token: string) =>
+  axios.get<TenantViewData>(`${BASE_URL}/api/public/tenant/${token}`).then(r => r.data)

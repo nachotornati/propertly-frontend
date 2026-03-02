@@ -1,19 +1,22 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Building2, LayoutDashboard, Bell, Settings, LogOut } from 'lucide-react'
-import { logout } from '../services/api'
+import { useQuery } from '@tanstack/react-query'
+import { logout, getAgencies } from '../services/api'
 
 interface LayoutProps {
   agencyId: string
   onLogout: () => void
 }
 
-export default function Layout({ onLogout }: LayoutProps) {
+export default function Layout({ agencyId, onLogout }: LayoutProps) {
+  const { data: agencies = [] } = useQuery({ queryKey: ['agencies'], queryFn: getAgencies })
+  const agency = agencies.find(a => a.id === agencyId) ?? agencies[0]
   const navigate = useNavigate()
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/properties', icon: Building2, label: 'Propiedades' },
-    { to: '/reminders', icon: Bell, label: 'Ajustes' },
+    { to: '/reminders', icon: Bell, label: 'Cobros' },
     { to: '/settings', icon: Settings, label: 'Configuración' },
   ]
 
@@ -54,13 +57,23 @@ export default function Layout({ onLogout }: LayoutProps) {
             </nav>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Salir
-          </button>
+          <div className="flex items-center gap-3">
+            {agency && (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">
+                  {agency.name[0]}
+                </div>
+                <span className="text-sm font-medium text-slate-700 max-w-[160px] truncate">{agency.name}</span>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Salir
+            </button>
+          </div>
         </div>
       </header>
 

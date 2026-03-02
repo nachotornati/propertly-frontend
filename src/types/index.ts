@@ -16,6 +16,8 @@ export interface Property {
   precio: number
   mesInicio: string // ISO date string
   ajusteMeses: number
+  duracionMeses?: number
+  tenantToken?: string
   indiceAjuste?: 'ICL' | 'IPC'
   tenantName?: string
   tenantPhone?: string
@@ -48,4 +50,43 @@ export interface AjusteRecord {
   precioAntes: number
   precioAhora: number
   coeficiente: number
+}
+
+export interface TenantViewData {
+  address: string
+  barrio: string
+  provincia?: string
+  tenantName?: string
+  moneda: 'ARS' | 'USD'
+  precioActual: number
+  mesInicio: string
+  duracionMeses?: number
+  nextAdjustmentDate?: string
+  ajusteInfo?: AjusteInfo
+  historialAjustes?: AjusteRecord[]
+  cobros: Cobro[]
+}
+
+export interface CobroVencidoAnterior {
+  property: Property
+  mes: string // ISO date "2026-02-01"
+  cobro: Cobro | null // null = no cobro registered; non-null = cobro exists but unpaid
+}
+
+export interface CobroExtra {
+  id?: string
+  descripcion: string
+  monto: number
+}
+
+export interface Cobro {
+  id: string
+  propertyId: string
+  mes: string
+  montoBase: number
+  montoTotal: number
+  pagado: boolean
+  fechaPago?: string
+  notes?: string
+  extras: CobroExtra[]
 }

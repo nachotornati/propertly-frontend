@@ -38,6 +38,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
           precio: initial.precio,
           mesInicio: initial.mesInicio?.slice(0, 7),
           ajusteMeses: initial.ajusteMeses,
+          duracionMeses: initial.duracionMeses,
           indiceAjuste: initial.indiceAjuste,
           tenantName: initial.tenantName,
           tenantPhone: initial.tenantPhone,
@@ -52,7 +53,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
 
   const handleFormSubmit = async (data: PropertyFormData) => {
     const mesInicio = data.mesInicio.length === 7 ? `${data.mesInicio}-01` : data.mesInicio
-    await onSubmit({ ...data, mesInicio, precio: Number(data.precio), ajusteMeses: Number(data.ajusteMeses) })
+    await onSubmit({ ...data, mesInicio, precio: Number(data.precio), ajusteMeses: Number(data.ajusteMeses), duracionMeses: data.duracionMeses ? Number(data.duracionMeses) : undefined })
   }
 
   return (
@@ -118,42 +119,63 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
 
             <div className="flex flex-col justify-center">
               <label className="label">Moneda <span className="text-red-500">*</span></label>
-              <div className="flex gap-4">
+              <div className={`flex gap-4 ${initial ? 'opacity-60 pointer-events-none' : ''}`}>
                 {['ARS', 'USD'].map(m => (
                   <label key={m} className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" value={m} {...register('moneda', { required: true })} className="accent-brand-600" />
+                    <input type="radio" value={m} {...register('moneda', { required: true })} className="accent-brand-600" disabled={!!initial} />
                     <span className="text-sm font-medium">{m === 'ARS' ? '🇦🇷 Pesos' : '🇺🇸 Dólares'}</span>
                   </label>
                 ))}
               </div>
+              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada la propiedad</p>}
             </div>
 
             <div>
-              <label className="label">Precio <span className="text-red-500">*</span></label>
+              <label className="label">Precio inicial <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">
                   {moneda === 'USD' ? 'USD' : '$'}
                 </span>
                 <input
-                  className="input pl-10"
+                  className={`input pl-10 ${initial ? 'opacity-60 cursor-not-allowed' : ''}`}
                   type="number"
                   min="0"
                   step="0.01"
                   placeholder="0"
+                  disabled={!!initial}
                   {...register('precio', { required: 'Requerido', min: { value: 0, message: 'Debe ser positivo' } })}
                 />
               </div>
+              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada la propiedad</p>}
               {errors.precio && <p className="text-red-500 text-xs mt-1">{errors.precio.message}</p>}
             </div>
 
             <div>
               <label className="label">Mes de inicio <span className="text-red-500">*</span></label>
               <input
-                className="input"
+                className={`input ${initial ? 'opacity-60 cursor-not-allowed' : ''}`}
                 type="month"
+                disabled={!!initial}
                 {...register('mesInicio', { required: 'Requerido' })}
               />
+              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada la propiedad</p>}
               {errors.mesInicio && <p className="text-red-500 text-xs mt-1">{errors.mesInicio.message}</p>}
+            </div>
+
+            <div>
+              <label className="label">Duración del contrato</label>
+              <div className="relative">
+                <input
+                  className="input pr-16"
+                  type="number"
+                  min={initial?.duracionMeses ?? 1}
+                  max="120"
+                  placeholder="Ej: 24"
+                  {...register('duracionMeses', { min: { value: initial?.duracionMeses ?? 1, message: initial?.duracionMeses ? `Mínimo ${initial.duracionMeses} meses` : 'Mínimo 1 mes' } })}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meses</span>
+              </div>
+              {errors.duracionMeses && <p className="text-red-500 text-xs mt-1">{errors.duracionMeses.message}</p>}
             </div>
 
             {moneda === 'ARS' && (

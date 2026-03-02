@@ -1,40 +1,42 @@
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { MapPin, Calendar, TrendingUp, User, Pencil, Trash2, AlertTriangle, Clock, ArrowRight } from 'lucide-react'
-import type { Property } from '../types'
+import { MapPin, Calendar, TrendingUp, User, Pencil, Trash2, AlertTriangle, Clock, CheckCircle } from 'lucide-react'
+import type { Cobro, Property } from '../types'
 import clsx from 'clsx'
 
 interface PropertyCardProps {
   property: Property
+  cobro: Cobro | undefined
+  hasVencidoAnterior?: boolean
   onEdit: () => void
   onDelete: () => void
   onClick: () => void
   reminderDays: number
 }
 
-export default function PropertyCard({ property, onEdit, onDelete, onClick, reminderDays }: PropertyCardProps) {
+export default function PropertyCard({ property, cobro, hasVencidoAnterior, onEdit, onDelete, onClick }: PropertyCardProps) {
   const isARS = property.moneda === 'ARS'
-  const due = property.adjustmentDue
-  const soon = isARS && !due && (property.daysUntilAdjustment ?? 999) <= reminderDays
-  const showAjuste = isARS && (due || soon) && property.ajusteInfo
   const precioDisplay = isARS && property.precioActual != null ? property.precioActual : property.precio
 
   const formatCurrency = (n: number) =>
     `$ ${Math.round(n).toLocaleString('es-AR')}`
 
+  const dayOfMonth = new Date().getDate()
+  const cobroStatus = cobro?.pagado ? 'pagado' : dayOfMonth <= 10 ? 'pendiente' : 'vencido'
+  const effectiveStatus = hasVencidoAnterior ? 'vencido' : cobroStatus
+
   const statusBadge = () => {
-    if (!isARS) return <span className="badge bg-slate-100 text-slate-600">Sin ajuste</span>
-    if (due) return <span className="badge bg-red-100 text-red-700"><AlertTriangle className="w-3 h-3" /> Ajuste vencido</span>
-    if (soon) return <span className="badge bg-amber-100 text-amber-700"><Clock className="w-3 h-3" /> En {property.daysUntilAdjustment} días</span>
-    return <span className="badge bg-emerald-100 text-emerald-700">Al día</span>
+    if (effectiveStatus === 'pagado') return <span className="badge bg-emerald-100 text-emerald-700"><CheckCircle className="w-3 h-3" /> Pagado</span>
+    if (effectiveStatus === 'vencido') return <span className="badge bg-red-100 text-red-700"><AlertTriangle className="w-3 h-3" /> Vencido</span>
+    return <span className="badge bg-amber-100 text-amber-700"><Clock className="w-3 h-3" /> Pendiente</span>
   }
 
   return (
     <div
       className={clsx(
         'card p-5 hover:shadow-md transition-all duration-200 group cursor-pointer flex flex-col',
-        due && 'border-red-200 bg-red-50/30',
-        soon && !due && 'border-amber-200 bg-amber-50/20',
+        effectiveStatus === 'vencido' && 'border-red-200 bg-red-50/30',
+        effectiveStatus === 'pendiente' && 'border-amber-200 bg-amber-50/20',
       )}
       onClick={onClick}
     >
@@ -57,24 +59,11 @@ export default function PropertyCard({ property, onEdit, onDelete, onClick, remi
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-slate-50 rounded-lg p-3">
           <p className="text-xs text-slate-400 mb-0.5">Precio actual</p>
-          {showAjuste && property.ajusteInfo ? (
-            <>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm text-slate-400 line-through">{formatCurrency(precioDisplay)}</span>
-                <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
-                <span className="font-bold text-slate-900">{formatCurrency(property.ajusteInfo.nuevoPrecio)}</span>
-              </div>
-              <p className={clsx('text-xs font-semibold mt-0.5', due ? 'text-red-600' : 'text-amber-600')}>
-                +{((Number(property.ajusteInfo.coeficiente) - 1) * 100).toFixed(1)}%
-              </p>
-            </>
-          ) : (
-            <p className="font-bold text-slate-900">
-              {property.moneda === 'USD'
-                ? `USD ${property.precio.toLocaleString('es-AR')}`
-                : formatCurrency(precioDisplay)}
-            </p>
-          )}
+          <p className="font-bold text-slate-900">
+            {property.moneda === 'USD'
+              ? `USD ${property.precio.toLocaleString('es-AR')}`
+              : formatCurrency(precioDisplay)}
+          </p>
         </div>
 
         <div className="bg-slate-50 rounded-lg p-3">
