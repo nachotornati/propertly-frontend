@@ -7,6 +7,7 @@ import Reminders from './pages/Reminders'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import TenantView from './pages/TenantView'
+import Landing from './pages/Landing'
 
 export default function App() {
   const [agencyId, setAgencyId] = useState<string>(() => localStorage.getItem('propertly_agency') ?? '')
@@ -51,8 +52,9 @@ export default function App() {
         </>
       ) : (
         <>
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login onAuth={handleAuth} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
     </Routes>
