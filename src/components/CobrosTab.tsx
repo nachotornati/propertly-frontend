@@ -57,7 +57,7 @@ function buildContractMonths(property: Property): { date: Date; precio: number }
     if (date < registrationMonth) continue
     months.push({ date, precio: currentPrice })
   }
-  return months.reverse()
+  return months
 }
 
 /** "YYYY-MM-01" → "YYYY-MM" key */
