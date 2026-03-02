@@ -21,6 +21,10 @@ export interface Property {
   indiceAjuste?: 'ICL' | 'IPC'
   tenantName?: string
   tenantPhone?: string
+  tenantEmail?: string
+  tenantFactura?: boolean
+  tenantPersonaJuridica?: boolean
+  tenantDocumento?: string
   notes?: string
   createdAt: string
   // Calculated by backend

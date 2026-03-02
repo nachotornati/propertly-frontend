@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form'
-import { X } from 'lucide-react'
+import { X, Info } from 'lucide-react'
 import type { Property, PropertyFormData } from '../types'
 
 interface PropertyFormProps {
@@ -27,8 +27,13 @@ const BARRIOS_CABA = [
   'Villa Urquiza','Otro',
 ]
 
+type FormValues = PropertyFormData & {
+  precioActualInput?: number
+  proximoMesAjusteInput?: string
+}
+
 export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFormProps) {
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<PropertyFormData>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
     defaultValues: initial
       ? {
           address: initial.address,
@@ -42,6 +47,10 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
           indiceAjuste: initial.indiceAjuste,
           tenantName: initial.tenantName,
           tenantPhone: initial.tenantPhone,
+          tenantEmail: initial.tenantEmail,
+          tenantFactura: initial.tenantFactura,
+          tenantPersonaJuridica: initial.tenantPersonaJuridica,
+          tenantDocumento: initial.tenantDocumento,
           notes: initial.notes,
         }
       : { moneda: 'ARS', provincia: 'CABA', ajusteMeses: 3, indiceAjuste: 'ICL' },
@@ -49,11 +58,24 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
 
   const moneda = watch('moneda')
   const provincia = watch('provincia')
+  const mesInicio = watch('mesInicio')
+  const personaJuridicaRaw = watch('tenantPersonaJuridica')
+  const personaJuridica = String(personaJuridicaRaw)
   const isCABA = provincia === 'CABA'
 
-  const handleFormSubmit = async (data: PropertyFormData) => {
-    const mesInicio = data.mesInicio.length === 7 ? `${data.mesInicio}-01` : data.mesInicio
-    await onSubmit({ ...data, mesInicio, precio: Number(data.precio), ajusteMeses: Number(data.ajusteMeses), duracionMeses: data.duracionMeses ? Number(data.duracionMeses) : undefined })
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  const contractAlreadyStarted = !initial && mesInicio && mesInicio < currentMonth
+
+  const handleFormSubmit = async (data: FormValues) => {
+    const mesInicioFull = data.mesInicio.length === 7 ? `${data.mesInicio}-01` : data.mesInicio
+    await onSubmit({
+      ...data,
+      mesInicio: mesInicioFull,
+      precio: Number(data.precio),
+      ajusteMeses: Number(data.ajusteMeses),
+      duracionMeses: data.duracionMeses ? Number(data.duracionMeses) : undefined,
+      precioActualInput: data.precioActualInput ? Number(data.precioActualInput) : undefined,
+    } as any)
   }
 
   return (
@@ -107,16 +129,51 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
               {errors.barrio && <p className="text-red-500 text-xs mt-1">{errors.barrio.message}</p>}
             </div>
 
+            {/* Tenant info */}
             <div>
               <label className="label">Inquilino</label>
               <input className="input" placeholder="Nombre del inquilino" {...register('tenantName')} />
             </div>
 
             <div>
-              <label className="label">Teléfono del inquilino</label>
+              <label className="label">Teléfono</label>
               <input className="input" placeholder="Ej: +54 11 1234-5678" {...register('tenantPhone')} />
             </div>
 
+            <div className="col-span-2">
+              <label className="label">Email</label>
+              <input className="input" type="email" placeholder="inquilino@ejemplo.com" {...register('tenantEmail')} />
+            </div>
+
+            <div className="col-span-2">
+              <label className="label mb-2">Tipo de persona</label>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" value="false" {...register('tenantPersonaJuridica')} className="accent-brand-600" />
+                  <span className="text-sm font-medium">Persona física</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" value="true" {...register('tenantPersonaJuridica')} className="accent-brand-600" />
+                  <span className="text-sm font-medium">Persona jurídica</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="label">{personaJuridica === 'true' ? 'CUIT' : 'DNI'}</label>
+              <input
+                className="input"
+                placeholder={personaJuridica === 'true' ? 'Ej: 30-12345678-9' : 'Ej: 12345678'}
+                {...register('tenantDocumento')}
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-5">
+              <input id="factura" type="checkbox" className="w-4 h-4 accent-brand-600" {...register('tenantFactura')} />
+              <label htmlFor="factura" className="text-sm font-medium text-slate-700 cursor-pointer">Emite factura</label>
+            </div>
+
+            {/* Contract settings */}
             <div className="flex flex-col justify-center">
               <label className="label">Moneda <span className="text-red-500">*</span></label>
               <div className={`flex gap-4 ${initial ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -127,7 +184,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                   </label>
                 ))}
               </div>
-              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada la propiedad</p>}
+              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada</p>}
             </div>
 
             <div>
@@ -138,15 +195,12 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                 </span>
                 <input
                   className={`input pl-10 ${initial ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
+                  type="number" min="0" step="0.01" placeholder="0"
                   disabled={!!initial}
                   {...register('precio', { required: 'Requerido', min: { value: 0, message: 'Debe ser positivo' } })}
                 />
               </div>
-              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada la propiedad</p>}
+              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada</p>}
               {errors.precio && <p className="text-red-500 text-xs mt-1">{errors.precio.message}</p>}
             </div>
 
@@ -158,7 +212,7 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                 disabled={!!initial}
                 {...register('mesInicio', { required: 'Requerido' })}
               />
-              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada la propiedad</p>}
+              {initial && <p className="text-xs text-slate-400 mt-1">No se puede modificar una vez creada</p>}
               {errors.mesInicio && <p className="text-red-500 text-xs mt-1">{errors.mesInicio.message}</p>}
             </div>
 
@@ -166,11 +220,8 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
               <label className="label">Duración del contrato</label>
               <div className="relative">
                 <input
-                  className="input pr-16"
-                  type="number"
-                  min={initial?.duracionMeses ?? 1}
-                  max="120"
-                  placeholder="Ej: 24"
+                  className="input pr-16" type="number"
+                  min={initial?.duracionMeses ?? 1} max="120" placeholder="Ej: 24"
                   {...register('duracionMeses', { min: { value: initial?.duracionMeses ?? 1, message: initial?.duracionMeses ? `Mínimo ${initial.duracionMeses} meses` : 'Mínimo 1 mes' } })}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meses</span>
@@ -184,15 +235,8 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                   <label className="label">Ajusta cada (meses) <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <input
-                      className="input pr-16"
-                      type="number"
-                      min="1"
-                      max="60"
-                      placeholder="3"
-                      {...register('ajusteMeses', {
-                        required: 'Requerido',
-                        min: { value: 1, message: 'Mínimo 1 mes' },
-                      })}
+                      className="input pr-16" type="number" min="1" max="60" placeholder="3"
+                      {...register('ajusteMeses', { required: 'Requerido', min: { value: 1, message: 'Mínimo 1 mes' } })}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meses</span>
                   </div>
@@ -211,6 +255,42 @@ export default function PropertyForm({ initial, onSubmit, onClose }: PropertyFor
                   </div>
                 </div>
               </>
+            )}
+
+            {/* Contract already started */}
+            {contractAlreadyStarted && moneda === 'ARS' && (
+              <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-amber-800">
+                    Este contrato ya inició. Ingresá el <strong>precio actual</strong> (luego de todos los ajustes aplicados) y el <strong>próximo mes de ajuste</strong>. No es necesario cargar pagos anteriores.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Precio actual <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                      <input
+                        className="input pl-8"
+                        type="number" min="0" step="0.01" placeholder="0"
+                        {...register('precioActualInput', { required: contractAlreadyStarted ? 'Requerido' : false })}
+                      />
+                    </div>
+                    {errors.precioActualInput && <p className="text-red-500 text-xs mt-1">{errors.precioActualInput.message}</p>}
+                  </div>
+                  <div>
+                    <label className="label">Próximo mes de ajuste <span className="text-red-500">*</span></label>
+                    <input
+                      className="input"
+                      type="month"
+                      min={currentMonth}
+                      {...register('proximoMesAjusteInput', { required: contractAlreadyStarted ? 'Requerido' : false })}
+                    />
+                    {errors.proximoMesAjusteInput && <p className="text-red-500 text-xs mt-1">{errors.proximoMesAjusteInput.message}</p>}
+                  </div>
+                </div>
+              </div>
             )}
 
             <div className="col-span-2">
